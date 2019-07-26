@@ -7,10 +7,12 @@ from datetime import datetime, timezone
 from colorama import Fore, Style
 
 import tabtab
-
 from fetchers import capital_one
 
-from secret import *
+try:
+    from secret import *
+except ModuleNotFoundError:
+    from secret_example import *
 
 fetchers = {
     'capital_one': capital_one,
