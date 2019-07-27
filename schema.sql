@@ -24,6 +24,7 @@ create table if not exists accounts
 , active boolean not null default true
 , fetcher varchar
 , fetcher_param varchar
+, url varchar
 );
 
 create table if not exists account_value

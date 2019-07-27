@@ -9,9 +9,9 @@ import os
 import sys
 import sqlite3
 
-conn = sqlite3.connect('data.sqlite')
+def main():
+  conn = sqlite3.connect('data.sqlite')
 
-def main(dry=True):
   schema = open('schema.sql').read()
   statements = map(str.strip, re.split(r';\n', schema))
   kinds = [
@@ -44,9 +44,9 @@ def main(dry=True):
   for table_name, table_name_new, statement in creates:
     c.execute(statement)
 
-  print('### Creating new tables and porting over data.')
+  print('# Creating new tables and porting over data.')
   for table_name, table_name_new, statement in creates:
-    print(table_name)
+    print(f'## {table_name}')
     statement_new = re.sub(table_name, table_name_new, statement)
     c.execute(f'''
       drop table if exists {table_name_new}
@@ -57,7 +57,7 @@ def main(dry=True):
     ''')
     old_columns = set(r[1] for r in c.fetchall())
     c.execute(f'''
-      pragma table_info({table_name})
+      pragma table_info({table_name_new})
     ''')
     new_columns = set(r[1] for r in c.fetchall())
     shared_columns = list(old_columns & new_columns)
@@ -74,25 +74,20 @@ def main(dry=True):
     ''')
 
   # Delete original tables and rename new ones.
-  print('### Replacing original tables.')
+  print('# Replacing original tables.')
   for table_name, table_name_new, statement in creates:
     c.executescript(f'''
       drop table if exists {table_name};
       alter table {table_name_new} rename to {table_name};
     ''')
 
-  print(f"### Creating {len(statements_of_kind['index'])} indexes.")
+  print(f"# Creating {len(statements_of_kind['index'])} indexes.")
   for statement in statements_of_kind['index']:
     c.execute(statement)
 
-  print('### Done')
-  if dry:
-    print('Dry run seems to have worked.')
-    print('Pass in "dewit" to change the database for real.')
-    conn.rollback()
-  else:
-    print('Committing.')
-    conn.commit()
+  print('# Done')
+  print('Committing.')
+  conn.commit()
 
 if __name__ == '__main__':
-  main(dry=(len(sys.argv) < 2 or sys.argv[1] != 'dewit'))
+  main()

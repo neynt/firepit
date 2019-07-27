@@ -1,22 +1,36 @@
-import sqlite3
-import readline
 import inspect
+import readline
 import shlex
+import sqlite3
+import sys
 from datetime import datetime, timezone
 
 from colorama import Fore, Style
+from selenium import webdriver
 
 import tabtab
-from fetchers import capital_one
+import importlib
+
+def make_webdriver():
+    return webdriver.Firefox()
 
 try:
-    from secret import *
+    from secret import fetcher_credentials
 except ModuleNotFoundError:
-    from secret_example import *
+    from secret_example import fetcher_credentials
 
-fetchers = {
-    'capital_one': capital_one,
-}
+try:
+    fetcher_by_name = {
+        name: importlib.import_module(f'fetchers.{name}').fetch
+        for name in fetcher_credentials
+    }
+except ModuleNotFoundError as e:
+    fetcher_by_name = None
+    print('Invalid fetcher found in secret.py')
+    print(e)
+
+if fetcher_by_name == None:
+    sys.exit(1)
 
 conn = sqlite3.connect('data.sqlite')
 c = conn.cursor()
@@ -100,6 +114,12 @@ def snapshots():
     print_cursor(c)
 
 @command
+def test_fetcher(name):
+    global driver
+    driver = make_webdriver()
+    print(fetcher_by_name[name](driver, **fetcher_credentials[name]))
+
+@command
 def snapshot():
     prev_snapshot_id = latest_snapshot_id()
     c.execute('''
@@ -115,8 +135,11 @@ def snapshot():
     for a_id, name, currency, fetcher, fetcher_param in c.fetchall():
         if fetcher:
             if fetcher not in fetcher_cache:
-                fetcher_cache[fetcher] = fetchers[fetcher]()
+                driver = make_webdriver()
+                fetcher_cache[fetcher] = fetcher_by_name[fetcher](driver, **fetcher_credentials[fetcher])
+                driver.quit()
             amount = fetcher_cache[fetcher][fetcher_param]
+            print(f'{name} ({currency}): {amount}')
         else:
             amount = input(f'{name} ({currency}): ')
         record(a_id, amount)
@@ -146,7 +169,7 @@ def set_fetcher(account_id, fetcher, fetcher_param):
     ''', (fetcher, fetcher_param, account_id))
 
 @command
-def fetchers():
+def account_fetchers():
     c.execute('''
     select * from accounts
     ''')
@@ -205,7 +228,7 @@ def record_currency(symbol, value):
 @command
 def help(name=None):
     if not name:
-        print(f'commands: {" ".join(all_commands)}')
+        print(f'commands: {" ".join(sorted(all_commands))}')
         return
     f = name_to_f.get(name)
     if f:
