@@ -1,36 +1,25 @@
+from colorama import Fore, Style
+from datetime import datetime, timezone
+import importlib
 import inspect
+import os
+import pandas as pd
 import readline
 import shlex
 import sqlite3
 import sys
-from datetime import datetime, timezone
-
-from colorama import Fore, Style
-from selenium import webdriver
 
 import tabtab
-import importlib
-
-def make_webdriver():
-    return webdriver.Firefox()
-
 try:
-    from secret import fetcher_credentials
+    from config import *
 except ModuleNotFoundError:
-    from secret_example import fetcher_credentials
+    from config_example import *
 
-try:
-    fetcher_by_name = {
-        name: importlib.import_module(f'fetchers.{name}').fetch
-        for name in fetcher_credentials
-    }
-except ModuleNotFoundError as e:
-    fetcher_by_name = None
-    print('Invalid fetcher found in secret.py')
-    print(e)
-
-if fetcher_by_name == None:
-    sys.exit(1)
+fetcher_memo = {}
+def get_fetcher(name):
+    if name not in fetcher_memo:
+        fetcher_memo[name] = importlib.import_module(f'fetchers.{name}')
+    return fetcher_memo[name]
 
 conn = sqlite3.connect('data.sqlite')
 c = conn.cursor()
@@ -61,6 +50,9 @@ c = None
 
 def print_cursor(c):
     print(tabtab.format(c.fetchall(), headers=[desc[0] for desc in c.description]))
+
+def cursor_to_dataframe(c):
+    return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
 
 @command
 def status():
@@ -109,15 +101,31 @@ def new_snapshot():
 @command
 def snapshots():
     c.execute('''
-    select * from snapshots
+    select s.id, s.time, count(cv.value) num
+    from snapshots s
+    left join currency_value cv on cv.snapshot = s.id
+    group by time
+    order by time
     ''')
-    print_cursor(c)
+    currencies = cursor_to_dataframe(c).set_index('id')
+    c.execute('''
+    select s.id, s.time, count(av.value) num
+    from snapshots s
+    left join account_value av on av.snapshot = s.id
+    group by time
+    order by time
+    ''')
+    accounts = cursor_to_dataframe(c).set_index('id')
+    data = []
+    for id_, currency in currencies.iterrows():
+        data.append((id_, currency.time, currency.num, accounts.loc[id_].num))
+    print(tabtab.format(data, headers=['id', 'time', '# currencies', '# accounts']))
 
 @command
 def test_fetcher(name):
     global driver
     driver = make_webdriver()
-    print(fetcher_by_name[name](driver, **fetcher_credentials[name]))
+    print(get_fetcher(name).fetch(driver, **fetcher_credentials[name]))
 
 @command
 def snapshot():
@@ -126,23 +134,45 @@ def snapshot():
     insert into snapshots (time) values (?)
     ''', (datetime.now(timezone.utc),))
     snapshot_id = c.lastrowid
+
+    # accounts
     c.execute('''
-    select a.id, a.name, a.currency, a.fetcher, a.fetcher_param
+    select a.id, a.name, a.currency, av.value, a.fetcher, a.fetcher_param
     from accounts a
-    where active = true
+    left join account_value av on av.id = a.id
+    left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
+    where av2.snapshot is null and a.active = true
     ''')
-    fetcher_cache = {}
-    for a_id, name, currency, fetcher, fetcher_param in c.fetchall():
-        if fetcher:
-            if fetcher not in fetcher_cache:
-                driver = make_webdriver()
-                fetcher_cache[fetcher] = fetcher_by_name[fetcher](driver, **fetcher_credentials[fetcher])
-                driver.quit()
-            amount = fetcher_cache[fetcher][fetcher_param]
-            print(f'{name} ({currency}): {amount}')
-        else:
-            amount = input(f'{name} ({currency}): ')
-        record(a_id, amount)
+    accounts = cursor_to_dataframe(c)
+    accounts.fillna({'fetcher': 'none'}, inplace=True)
+    groups = accounts.groupby('fetcher')
+    for fetcher, _ in groups:
+        if fetcher != 'none':
+            os.system(f'{browser_cmd} {get_fetcher(fetcher).url}')
+    for fetcher, rows in groups:
+        for _, a in rows.iterrows():
+            if pd.isnull(a.value):
+                amount = input(f'{a["name"]} (new, {a.currency})? ')
+            else:
+                amount = input(f'{a["name"]} (prev: {a.value} {a.currency})? ')
+            if not amount:
+                print('Assuming ({a.value} {a.currency})')
+                amount = a.value
+            record(a.id, amount)
+
+    # currencies
+    c.execute('''
+    select c.symbol, cv.value, c.name
+    from currencies c
+    left join currency_value cv on cv.symbol = c.symbol
+    left join currency_value cv2 on (cv2.symbol = cv.symbol and cv.snapshot < cv2.snapshot)
+    where cv2.snapshot is null and c.active = true
+    ''')
+    currencies = cursor_to_dataframe(c)
+    print(currencies)
+    for _, cur in currencies.iterrows():
+        value = input(f'Value of {cur.symbol}? ')
+        record_currency(cur.symbol, value)
 
 @command
 def accounts():

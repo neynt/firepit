@@ -1,5 +1,7 @@
+url = 'https://verified.capitalone.com/sic-ui/'
+
 def fetch(driver, username, password):
-  driver.get('https://verified.capitalone.com/sic-ui/')
+  driver.get(url)
   driver.implicitly_wait(10)
   driver.find_element_by_id('username').send_keys(username)
   driver.find_element_by_id('password').send_keys(password)

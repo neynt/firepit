@@ -1,11 +1,12 @@
 create table if not exists snapshots
-( id integer primary key
+( id integer primary key autoincrement
 , time datetime not null
 );
 
 create table if not exists currencies
 ( symbol varchar primary key not null
 , name varchar not null
+, active boolean not null default true
 );
 
 create table if not exists currency_value
@@ -24,7 +25,6 @@ create table if not exists accounts
 , active boolean not null default true
 , fetcher varchar
 , fetcher_param varchar
-, url varchar
 );
 
 create table if not exists account_value

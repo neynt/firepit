@@ -2,6 +2,6 @@
 *.sqlite
 __pycache__
 firepit.side
-secret.py
+config.py
 Session.vim
 venv

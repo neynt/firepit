@@ -1,5 +1,7 @@
+url = 'https://www.tangerine.ca/app/'
+
 def fetch(driver, username, pin):
-  driver.get('https://www.tangerine.ca/app/')
+  driver.get(url)
   driver.implicitly_wait(10)
   driver.find_element_by_id('login_clientId').click()
   driver.find_element_by_id('login_clientId').send_keys(username)
