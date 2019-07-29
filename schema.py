@@ -1,7 +1,7 @@
 # Super simple database schema and migration script.
 # Add a column, and any existing rows will have it set to its default value.
 # Remove a column, and the data will disappear.
-# Change a column, and... you'll have to update it manually.
+# Change a column any other way, and you'll have to update it manually.
 
 from collections import defaultdict
 import re

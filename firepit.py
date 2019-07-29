@@ -1,13 +1,16 @@
+from collections import defaultdict
 from colorama import Fore, Style
 from datetime import datetime, timezone
 import importlib
 import inspect
+import numpy as np
 import os
 import pandas as pd
 import readline
 import shlex
 import sqlite3
 import sys
+import textwrap
 
 import tabtab
 try:
@@ -28,9 +31,17 @@ conn.commit()
 del c
 
 commands = []
-def command(f):
-    commands.append(f)
-    return f
+command_names = []
+command_by_name = {}
+command_categories = defaultdict(list)
+def command(cat):
+    def fun(f):
+        commands.append(f)
+        command_names.append(f.__name__)
+        command_by_name[f.__name__] = f
+        command_categories[cat].append(f.__name__)
+        return f
+    return fun
 
 def latest_snapshot_id():
     c.execute('''
@@ -54,10 +65,28 @@ def print_cursor(c):
 def cursor_to_dataframe(c):
     return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
 
-@command
+@command('reporting')
 def status():
     """Shows status of your accounts."""
-    currencies()
+    c.execute('''
+    select id, time from snapshots
+    order by time desc
+    limit 1
+    ''')
+    snapshot = c.fetchone()
+    print(f'Snapshot as of {snapshot[1]}')
+    print()
+    c.execute('''
+    select c.symbol, c.name, cv.value
+    from currencies c
+    left join currency_value cv on c.symbol = cv.symbol
+    left join currency_value cv2 on (c.symbol = cv2.symbol and cv.snapshot < cv2.snapshot)
+    where cv2.snapshot is null
+      and c.active = true
+    ''')
+    global currencies
+    currencies = cursor_to_dataframe(c).set_index('symbol')
+    print(tabtab.format_dataframe(currencies))
     print()
     snapshot_id = latest_snapshot_id()
     c.execute('''
@@ -66,10 +95,27 @@ def status():
     left join account_value av on av.id = a.id
     left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
     where av2.snapshot is null
+      and av.value > 0
+      and a.active = true
     ''', ())
-    print_cursor(c)
+    global accounts
+    accounts = cursor_to_dataframe(c).set_index('id')
+    print(tabtab.format_dataframe(accounts))
+    print()
 
-@command
+    global rows
+    rows = []
+    grand_total = 0.0
+    for symbol, group in accounts.groupby('currency'):
+        total = group.value.sum()
+        rows.append((symbol, total))
+        grand_total += currencies.loc[symbol].value * total
+    baseline_currency = currencies[currencies.value == 1].iloc[0].name
+    print(tabtab.format(rows, headers=['currency', 'total']))
+    print()
+    print(f'Grand total: {grand_total:.2f} {baseline_currency}')
+
+@command('reporting')
 def history():
     """Shows history of an account over time."""
     snapshot_id = latest_snapshot_id()
@@ -81,7 +127,7 @@ def history():
     ''', ())
     print_cursor(c)
 
-@command
+@command('tracking')
 def record(account_id, value):
     """Sets the value of the account for the latest snapshot."""
     snapshot_id = latest_snapshot_id()
@@ -92,13 +138,13 @@ def record(account_id, value):
     do update set value=?
     ''', (account_id, snapshot_id, value, value))
 
-@command
+@command('debug')
 def new_snapshot():
     c.execute('''
     insert into snapshots (time) values (?)
     ''', (datetime.now(timezone.utc),))
 
-@command
+@command('debug')
 def snapshots():
     c.execute('''
     select s.id, s.time, count(cv.value) num
@@ -121,13 +167,13 @@ def snapshots():
         data.append((id_, currency.time, currency.num, accounts.loc[id_].num))
     print(tabtab.format(data, headers=['id', 'time', '# currencies', '# accounts']))
 
-@command
+@command('debug')
 def test_fetcher(name):
     global driver
     driver = make_webdriver()
     print(get_fetcher(name).fetch(driver, **fetcher_credentials[name]))
 
-@command
+@command('tracking')
 def snapshot():
     prev_snapshot_id = latest_snapshot_id()
     c.execute('''
@@ -146,6 +192,8 @@ def snapshot():
     accounts = cursor_to_dataframe(c)
     accounts.fillna({'fetcher': 'none'}, inplace=True)
     groups = accounts.groupby('fetcher')
+    if browser_cmd in ['firefox']:
+        os.system(f'{browser_cmd} --new-window')
     for fetcher, _ in groups:
         if fetcher != 'none':
             os.system(f'{browser_cmd} {get_fetcher(fetcher).url}')
@@ -174,38 +222,33 @@ def snapshot():
         value = input(f'Value of {cur.symbol}? ')
         record_currency(cur.symbol, value)
 
-@command
+@command('reporting')
 def accounts():
     c.execute('''
-    select name, currency
-    from accounts
-    order by name
+    select * from accounts order by name
     ''')
     print_cursor(c)
 
-@command
+@command('setup')
 def new_account(name, currency):
     c.execute('''
-    insert into accounts (name, currency)
-    values (?, ?)
+    insert into accounts (name, currency) values (?, ?)
     ''', (name, currency))
 
-@command
-def set_fetcher(account_id, fetcher, fetcher_param):
-    c.execute('''
+@command('debug')
+def mod_account(account_id, prop_name, value):
+    c.execute(f'''
     update accounts
-    set fetcher=?, fetcher_param=?
+    set {prop_name}=?
     where id=?
-    ''', (fetcher, fetcher_param, account_id))
+    ''', (value, account_id))
 
-@command
-def account_fetchers():
-    c.execute('''
-    select * from accounts
-    ''')
-    print_cursor(c)
+@command('setup')
+def set_fetcher(account_id, fetcher, fetcher_param):
+    mod_account(account_id, 'fetcher', fetcher)
+    mod_account(account_id, 'fetcher_param', fetcher_param)
 
-@command
+@command('setup')
 def del_account():
     c.execute('''
     select id, name, currency
@@ -219,16 +262,19 @@ def del_account():
     where id = ?
     ''', (id_,))
 
-@command
+@command('reporting')
 def currencies():
     c.execute('''
-    select c.symbol, c.name, cv.snapshot, cv.value
+    select c.symbol, c.name, c.active, cv.value
     from currencies c
     left join currency_value cv on c.symbol = cv.symbol
+    left join currency_value cv2 on (c.symbol = cv2.symbol and cv.snapshot < cv2.snapshot)
+    where cv2.snapshot is null
+      and c.active = true
     ''')
     print_cursor(c)
 
-@command
+@command('setup')
 def new_currency(symbol, name):
     c.execute('''
     insert into currencies (symbol, name)
@@ -236,7 +282,7 @@ def new_currency(symbol, name):
     ''', (symbol, name))
     currencies()
 
-@command
+@command('setup')
 def del_currency(symbol):
     c.execute('''
     delete from currencies
@@ -244,7 +290,7 @@ def del_currency(symbol):
     ''', (symbol,))
     currencies()
 
-@command
+@command('setup')
 def record_currency(symbol, value):
     """Sets the value of the account for the latest snapshot."""
     snapshot_id = latest_snapshot_id()
@@ -255,26 +301,25 @@ def record_currency(symbol, value):
     do update set value=?
     ''', (symbol, snapshot_id, value, value))
 
-@command
+@command('general')
 def help(name=None):
     if not name:
-        print(f'commands: {" ".join(sorted(all_commands))}')
+        for cat in ['general', 'setup', 'tracking', 'reporting', 'debug']:
+            cmds = command_categories[cat]
+            print(textwrap.fill(cat + ': ' + ', '.join(cmds)))
         return
-    f = name_to_f.get(name)
+    f = command_by_name.get(name)
     if f:
         print(inspect.getdoc(f) or f'No docs for {name}')
     else:
         print('unknown command')
-
-all_commands = [f.__name__ for f in commands]
-name_to_f = {f.__name__: f for f in commands}
 
 def main():
     print(f'\n  {Fore.RED}.{Fore.YELLOW}~{Fore.RED}.{Style.RESET_ALL} {Style.BRIGHT}{Fore.WHITE}firepit{Style.RESET_ALL}\n')
     while True:
         args = shlex.split(input('> '))
         if not args: continue
-        f = name_to_f.get(args[0])
+        f = command_by_name.get(args[0])
         args = args[1:]
         if not f:
             print('command not found')
