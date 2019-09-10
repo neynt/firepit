@@ -1,6 +1,8 @@
+"""Tabular output utilities."""
 import numpy as np
 
 def smart_str(item):
+    """Convert to string, with smart handling for certain types."""
     if type(item) in [float, np.float64]:
         for decimals in [2, 3, 4, 5, 6, 7, 8]:
             s = ('{:.%df}' % decimals).format(item)
@@ -10,7 +12,8 @@ def smart_str(item):
     return str(item)
 
 def format(rows, headers=None, spacing=2, indent=1):
-    if not rows: return
+    if not rows:
+        return ''
     R = len(rows)
     C = max(len(row) for row in rows)
 
@@ -37,4 +40,4 @@ def format(rows, headers=None, spacing=2, indent=1):
 def format_dataframe(df, **kwargs):
     df = df.reset_index()
     headers = list(df.columns)
-    return format(df.to_numpy().tolist(), headers=headers)
+    return format(df.to_numpy().tolist(), headers=headers, **kwargs)

@@ -7,6 +7,7 @@ create table if not exists currencies
 ( symbol varchar primary key not null
 , name varchar not null
 , active boolean not null default true
+, fetcher varchar
 );
 
 create table if not exists currency_value

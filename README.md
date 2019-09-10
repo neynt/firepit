@@ -19,3 +19,12 @@ profile results in most banks complaining about you having never used this
 device before.
 
 So fetchers are on hold.
+
+## TOOD
+
+- Currency fetchers
+- Autocompletion when it matters (fzf?)
+- Better organization of commands and subcommands
+- Transactions
+- Selenium-based automatic fetcher
+- Reconciling transactions
