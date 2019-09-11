@@ -1,1 +1,1 @@
-url = 'https://secure.splitwise.com/#/dashboard'
+URL = 'https://secure.splitwise.com/#/dashboard'

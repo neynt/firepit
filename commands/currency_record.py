@@ -1,7 +1,7 @@
 import db
 from lib import latest_snapshot_id
 
-CATEGORY = 'setup'
+CATEGORY = 'debug'
 
 def run(symbol, value):
     """Sets the value of the account for the latest snapshot."""

@@ -24,7 +24,6 @@ So fetchers are on hold.
 
 - Currency fetchers
 - Autocompletion when it matters (fzf?)
-- Better organization of commands and subcommands
 - Transactions
 - Selenium-based automatic fetcher
 - Reconciling transactions

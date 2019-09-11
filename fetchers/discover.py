@@ -1,1 +1,1 @@
-url = 'https://www.discover.com/'
+URL = 'https://www.discover.com/'

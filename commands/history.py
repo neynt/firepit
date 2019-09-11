@@ -1,7 +1,7 @@
 import db
 from lib import latest_snapshot_id, print_cursor
 
-CATEGORY = 'tracking'
+CATEGORY = 'debug'
 
 def run():
     """Shows history of an account over time."""

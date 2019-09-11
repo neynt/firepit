@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from commands import record, currency_record
+from commands import account_record, currency_record
 import config
 import db
 import lib
@@ -35,7 +35,7 @@ def run():
         os.system(f'{config.BROWSER_CMD} --new-window')
     for fetcher, _ in groups:
         if fetcher != 'none':
-            os.system(f'{config.BROWSER_CMD} {modules.FETCHERS.get(fetcher).url}')
+            os.system(f'{config.BROWSER_CMD} {modules.FETCHERS.get(fetcher).URL}')
     for fetcher, rows in groups:
         for _, account in rows.iterrows():
             if pd.isnull(account.value):
@@ -45,7 +45,7 @@ def run():
             if not amount:
                 print(f'Assuming ({account.value} {account.currency})')
                 amount = account.value
-            record.run(account.id, amount)
+            account_record.run(account.id, amount)
 
     # currencies
     c.execute('''

@@ -1,1 +1,1 @@
-url = 'https://www.rbcroyalbank.com/personal.html'
+URL = 'https://www.rbcroyalbank.com/personal.html'
