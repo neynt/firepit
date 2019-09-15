@@ -1,3 +1,5 @@
+from commands.snapshot import latest_snapshot_id
+
 import db
 import lib
 import tabtab
@@ -20,7 +22,7 @@ def account_new(name, currency):
 @lib.command()
 def account_record(account_id, value):
     """Sets the value of the account for the latest snapshot."""
-    snapshot_id = lib.latest_snapshot_id()
+    snapshot_id = latest_snapshot_id()
     db.execute('''
     insert into account_value (id, snapshot, value)
     values (?, ?, ?)

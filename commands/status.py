@@ -5,7 +5,7 @@ import lib
 import tabtab
 
 @lib.command(category='reporting')
-def run():
+def status():
     """Shows status of your accounts."""
     c = db.c
     c.execute('''
@@ -28,7 +28,7 @@ def run():
     print(tabtab.format_dataframe(currencies))
     print()
 
-    c.execute('''
+    accounts = db.query_to_dataframe('''
     select a.id, a.name, av.value, a.currency as curr
     from accounts a
     left join account_value av on av.id = a.id
@@ -36,10 +36,11 @@ def run():
     where av2.snapshot is null
       and av.value != 0
       and a.active = true
-    ''', ())
-    accounts = lib.cursor_to_dataframe(c).set_index('id')
+    ''', ()).set_index('id')
     print(tabtab.format_dataframe(accounts))
     print()
+
+    lib.cake = accounts
 
     rows = []
     grand_total = 0.0

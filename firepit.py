@@ -36,7 +36,7 @@ def main():
                         print(f'{name}: {args[i]}')
                     else:
                         args.append(lib.prompt(f'{name}: '))
-            db.c = db.conn.cursor()
+            db.begin()
             result = f(*args)
             if isinstance(result, pd.DataFrame):
                 print(tabtab.format_dataframe(result))
@@ -44,13 +44,13 @@ def main():
                 pass
             else:
                 print(f'Command returned {type(result)}: {result}')
-            db.conn.commit()
+            db.commit()
         except KeyboardInterrupt as e:
             print('Cancelled.')
-            db.conn.rollback()
+            db.rollback()
         except sqlite3.IntegrityError as e:
             print(e)
-            db.conn.rollback()
+            db.rollback()
 
 if __name__ == '__main__':
     try:

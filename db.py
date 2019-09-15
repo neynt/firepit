@@ -17,5 +17,15 @@ def query(*args):
     c.execute(*args)
     return c.fetchall()
 
+def begin():
+    global c
+    c = conn.cursor()
+
 def execute(*args):
     c.execute(*args)
+
+def commit():
+    conn.commit()
+
+def rollback():
+    conn.rollback()

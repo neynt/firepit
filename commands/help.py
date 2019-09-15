@@ -22,22 +22,19 @@ def print_subtree(children, indent=0):
         print_subtree(rest, indent=indent + 2)
 
 @lib.command(category='general')
-def run(cmd_name=None):
+def help(cmd_name=None):
     """Shows a list of commands, or help for a specific command."""
     if cmd_name:
-        f = modules.COMMANDS.get(cmd_name)
+        f = lib.COMMANDS.get(cmd_name)
         if f:
             print(inspect.getdoc(f.run) or f'No doc for {cmd_name}')
         else:
             print('unknown command')
     else:
-        categories = defaultdict(list)
-        for name, command in modules.COMMANDS.items():
-            categories[command.CATEGORY].append(name)
-        for CATEGORY, names in categories.items():
-            if CATEGORY == 'debug':
-                print(f'{CATEGORY}: (hidden)')
+        for category, names in lib.COMMAND_NAMES_BY_CATEGORY.items():
+            if category == 'debug':
+                print(f'{category}: (hidden)')
                 continue
-            print(CATEGORY + ':')
+            print(category + ':')
             for name in sorted(names):
                 print('  ' + name)

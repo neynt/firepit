@@ -1,3 +1,5 @@
+from commands.snapshot import latest_snapshot_id
+
 import db
 import lib
 import tabtab
@@ -19,7 +21,7 @@ def currencies():
 @lib.command(category='setup')
 def currency_new(symbol, name):
     """Declares a new currency."""
-    db.c.execute('''
+    db.execute('''
     insert into currencies (symbol, name)
     values (?, ?)
     ''', (symbol, name))
@@ -28,7 +30,7 @@ def currency_new(symbol, name):
 @lib.command(category='setup')
 def currency_del(symbol):
     """Deletes a currency from existence."""
-    db.c.execute('''
+    db.execute('''
     delete from currencies
     where symbol = ?
     ''', (symbol,))
@@ -37,8 +39,8 @@ def currency_del(symbol):
 @lib.command()
 def currency_record(symbol, value):
     """Sets the value of the account for the latest snapshot."""
-    snapshot_id = lib.latest_snapshot_id()
-    db.c.execute('''
+    snapshot_id = latest_snapshot_id()
+    db.execute('''
     insert into currency_value (symbol, snapshot, value)
     values (?, ?, ?)
     on conflict (symbol, snapshot)

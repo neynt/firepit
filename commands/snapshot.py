@@ -1,70 +1,49 @@
 from datetime import datetime, timezone
-import os
-
-import pandas as pd
-
-from commands.account import account_record
-from commands.currency import currency_record
 
 import db
 import lib
-import config
-import modules
+import tabtab
 
-def open_browser(fetcher_name, new_window=False):
-    fetcher = modules.FETCHERS.get(fetcher_name)
-    if not fetcher:
-        print(f'Could not find fetcher {fetcher_name}')
-        return
-    os.system(f'{config.BROWSER_CMD} {"--new-window" if new_window else ""} {fetcher.URL}')
+@lib.command()
+def latest_snapshot_id():
+    db.c.execute('''
+    select id, time from snapshots
+    order by time desc
+    limit 1
+    ''')
+    result = db.c.fetchone()
+    if not result:
+        # We could fail, but it's cleaner to just create one
+        snapshot_manual_create()
+        return latest_snapshot_id()
+    id_, time = result
+    return id_
+
+@lib.command()
+def snapshot_list():
+    db.c.execute('''
+    select s.id, s.time, count(cv.value) num
+    from snapshots s
+    left join currency_value cv on cv.snapshot = s.id
+    group by time
+    order by time
+    ''')
+    currencies = lib.cursor_to_dataframe(db.c).set_index('id')
+    db.c.execute('''
+    select s.id, s.time, count(av.value) num
+    from snapshots s
+    left join account_value av on av.snapshot = s.id
+    group by time
+    order by time
+    ''')
+    accounts = lib.cursor_to_dataframe(db.c).set_index('id')
+    data = []
+    for id_, currency in currencies.iterrows():
+        data.append((id_, currency.time, currency.num, accounts.loc[id_].num))
+    print(tabtab.format(data, headers=['id', 'time', '# currencies', '# accounts']))
 
 @lib.command()
 def snapshot_manual_create():
     db.execute('''
     insert into snapshots (time) values (?)
     ''', (datetime.now(timezone.utc),))
-
-@lib.command(category='tracking')
-def snapshot():
-    """Creates a new snapshot and opens browser windows."""
-    snapshot_manual_create.run()
-
-    # accounts
-    accounts = db.query_to_dataframe('''
-    select a.id, a.name, a.currency, av.value, a.fetcher, a.fetcher_param
-    from accounts a
-    left join account_value av on av.id = a.id
-    left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
-    where av2.snapshot is null and a.active = true
-    ''')
-    accounts.fillna({'fetcher': 'zzz---none---'}, inplace=True)
-    groups = accounts.groupby('fetcher')
-    first = True
-    for fetcher_name, rows in groups:
-        for _, account in rows.iterrows():
-            open_browser(fetcher_name, new_window=first)
-            first = False
-            if pd.isna(account.value):
-                amount = lib.prompt(f'{account["name"]} ({account.currency})? ')
-            else:
-                amount = lib.prompt(f'{account["name"]} (prev: {account.value} {account.currency})? ')
-            if not amount:
-                if pd.isna(account.value):
-                    print('Skipping')
-                else:
-                    print(f'Assuming ({account.value} {account.currency})')
-                    amount = account.value
-            account_record.run(account.id, amount)
-
-    # currencies
-    currencies = db.query_to_dataframe('''
-    select c.symbol, cv.value, c.name
-    from currencies c
-    left join currency_value cv on cv.symbol = c.symbol
-    left join currency_value cv2 on (cv2.symbol = cv.symbol and cv.snapshot < cv2.snapshot)
-    where cv2.snapshot is null and c.active = true
-    ''')
-    print(currencies)
-    for _, cur in currencies.iterrows():
-        value = input(f'Value of {cur.symbol}? ')
-        currency_record.run(cur.symbol, value)

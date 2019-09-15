@@ -1,17 +1,18 @@
-import db
-import tabtab
-import pandas as pd
-import prompt_toolkit
 from collections import defaultdict
 
-from commands import snapshot_manual_create
+import pandas as pd
+import prompt_toolkit
+
+import tabtab
 
 COMMANDS = {}
-COMMANDS_BY_CATEGORY = defaultdict(list)
+COMMAND_NAMES_BY_CATEGORY = defaultdict(list)
 def command(category='debug'):
     def decorator(f):
-        COMMANDS[f.__name__.replace('_', '-')] = f
-        COMMANDS_BY_CATEGORY[category].append(f)
+        command_name = f.__name__.replace('_', '-')
+        COMMANDS[command_name] = f
+        COMMAND_NAMES_BY_CATEGORY[category].append(command_name)
+        return f
     return decorator
 
 def print_cursor(c):
@@ -22,17 +23,3 @@ def cursor_to_dataframe(c):
 
 def prompt(*args):
     return prompt_toolkit.prompt(*args)
-
-def latest_snapshot_id():
-    db.c.execute('''
-    select id, time from snapshots
-    order by time desc
-    limit 1
-    ''')
-    result = db.c.fetchone()
-    if not result:
-        # We could fail, but it's cleaner to just create one
-        snapshot_manual_create.run()
-        return latest_snapshot_id()
-    id_, time = result
-    return id_
