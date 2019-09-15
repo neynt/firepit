@@ -1,8 +1,8 @@
+import lib
 import config
 import modules
 
-CATEGORY = 'debug'
-
+@lib.command()
 def run(name):
     global driver
     driver = config.make_webdriver()

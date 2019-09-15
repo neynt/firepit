@@ -1,12 +1,14 @@
 import inspect
 import shlex
 import sqlite3
+import pandas as pd
 
 from colorama import Fore, Back, Style
 
 import db
 import lib
 import modules
+import tabtab
 
 def main():
     """Main entry point and input handling loop."""
@@ -19,13 +21,13 @@ def main():
         args = shlex.split(line)
         if not args:
             continue
-        module = modules.COMMANDS.get(args[0])
+        f = lib.COMMANDS.get(args[0])
         args = args[1:]
-        if not module:
+        if not f:
             print('command not found')
             continue
         try:
-            sig = inspect.signature(module.run)
+            sig = inspect.signature(f)
             params = [(k, v) for k, v in sig.parameters.items()
                       if v.default == inspect.Parameter.empty]
             if len(params) > len(args):
@@ -35,7 +37,13 @@ def main():
                     else:
                         args.append(lib.prompt(f'{name}: '))
             db.c = db.conn.cursor()
-            module.run(*args)
+            result = f(*args)
+            if isinstance(result, pd.DataFrame):
+                print(tabtab.format_dataframe(result))
+            elif result == None:
+                pass
+            else:
+                print(f'Command returned {type(result)}: {result}')
             db.conn.commit()
         except KeyboardInterrupt as e:
             print('Cancelled.')

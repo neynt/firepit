@@ -3,15 +3,29 @@ import os
 
 import pandas as pd
 
-from commands import account_record, currency_record, snapshot_manual_create
-import config
+from commands.account import account_record
+from commands.currency import currency_record
+
 import db
 import lib
+import config
 import modules
 
-CATEGORY = 'tracking'
+def open_browser(fetcher_name, new_window=False):
+    fetcher = modules.FETCHERS.get(fetcher_name)
+    if not fetcher:
+        print(f'Could not find fetcher {fetcher_name}')
+        return
+    os.system(f'{config.BROWSER_CMD} {"--new-window" if new_window else ""} {fetcher.URL}')
 
-def run():
+@lib.command()
+def snapshot_manual_create():
+    db.execute('''
+    insert into snapshots (time) values (?)
+    ''', (datetime.now(timezone.utc),))
+
+@lib.command(category='tracking')
+def snapshot():
     """Creates a new snapshot and opens browser windows."""
     snapshot_manual_create.run()
 
@@ -26,9 +40,9 @@ def run():
     accounts.fillna({'fetcher': 'zzz---none---'}, inplace=True)
     groups = accounts.groupby('fetcher')
     first = True
-    for fetcher, rows in groups:
+    for fetcher_name, rows in groups:
         for _, account in rows.iterrows():
-            #os.system(f'{config.BROWSER_CMD} {"--new-window" if first else ""} {modules.FETCHERS.get(fetcher).URL}')
+            open_browser(fetcher_name, new_window=first)
             first = False
             if pd.isna(account.value):
                 amount = lib.prompt(f'{account["name"]} ({account.currency})? ')
@@ -54,4 +68,3 @@ def run():
     for _, cur in currencies.iterrows():
         value = input(f'Value of {cur.symbol}? ')
         currency_record.run(cur.symbol, value)
-

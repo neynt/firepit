@@ -2,8 +2,17 @@ import db
 import tabtab
 import pandas as pd
 import prompt_toolkit
+from collections import defaultdict
 
 from commands import snapshot_manual_create
+
+COMMANDS = {}
+COMMANDS_BY_CATEGORY = defaultdict(list)
+def command(category='debug'):
+    def decorator(f):
+        COMMANDS[f.__name__.replace('_', '-')] = f
+        COMMANDS_BY_CATEGORY[category].append(f)
+    return decorator
 
 def print_cursor(c):
     print(tabtab.format(c.fetchall(), headers=[desc[0] for desc in c.description]))

@@ -1,9 +1,8 @@
 from collections import defaultdict
 import inspect
 
+import lib
 import modules
-
-CATEGORY = 'general'
 
 # unused
 def print_subtree(children, indent=0):
@@ -20,8 +19,9 @@ def print_subtree(children, indent=0):
         print(' ' * indent + command)
     for prefix, rest in by_prefix.items():
         print(' ' * indent + prefix + '-')
-        print_subtree(rest, indent = indent + 2)
+        print_subtree(rest, indent=indent + 2)
 
+@lib.command(category='general')
 def run(cmd_name=None):
     """Shows a list of commands, or help for a specific command."""
     if cmd_name:

@@ -1,10 +1,10 @@
-import db
-import tabtab
-import lib
 import pandas as pd
 
-CATEGORY = 'reporting'
+import db
+import lib
+import tabtab
 
+@lib.command(category='reporting')
 def run():
     """Shows status of your accounts."""
     c = db.c
@@ -54,4 +54,3 @@ def run():
     print(tabtab.format(rows, headers=['curr', 'total', f'(in {baseline_currency})']))
     print()
     print(f'Grand total: {grand_total:.2f} {baseline_currency}')
-

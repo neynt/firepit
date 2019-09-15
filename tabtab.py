@@ -29,7 +29,7 @@ def format(rows, headers=None, spacing=2, indent=1):
     lines = []
     if headers:
         lines.append(row_format.format(*headers))
-        lines.append(spacer.join('-' * w for w in col_widths))
+        lines.append(spacer.join('─' * w for w in col_widths))
     for row in rows:
         lines.append(row_format.format(*row))
 
