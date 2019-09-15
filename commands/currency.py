@@ -15,8 +15,19 @@ def currencies():
     where cv2.snapshot is null
       and c.active = true
     ''')
-    tabtab.format_dataframe(result)
+    tabtab.print_dataframe(result)
     return result
+
+@lib.command()
+def currency_values():
+    return db.query_to_dataframe('''
+    select c.symbol, c.name, cv.value
+    from currencies c
+    left join currency_value cv on c.symbol = cv.symbol
+    left join currency_value cv2 on (c.symbol = cv2.symbol and cv.snapshot < cv2.snapshot)
+    where cv2.snapshot is null
+      and c.active = true
+    ''').set_index('symbol')
 
 @lib.command(category='setup')
 def currency_new(symbol, name):

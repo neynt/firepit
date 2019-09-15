@@ -10,7 +10,19 @@ def accounts():
     accts = db.query_to_dataframe('''
     select * from accounts order by name
     ''')
-    print(tabtab.format_dataframe(accts))
+    tabtab.print_dataframe(accts)
+
+@lib.command()
+def account_values():
+    return db.query_to_dataframe('''
+    select a.name, av.value, a.currency as curr
+    from accounts a
+    left join account_value av on av.id = a.id
+    left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
+    where av2.snapshot is null
+      and av.value != 0
+      and a.active = true
+    ''', ())
 
 @lib.command(category='setup')
 def account_new(name, currency):
@@ -37,7 +49,7 @@ def account_del():
     select id, name, currency
     from accounts
     ''')
-    print(tabtab.format_dataframe(accts))
+    tabtab.print_dataframe(accts)
     id_ = lib.prompt('Delete which id? ')
     db.execute('''
     delete from accounts
@@ -68,4 +80,4 @@ def account_history():
     left join account_value av on av.id = a.id
     left join snapshots s on av.snapshot = s.id
     ''', ())
-    print(tabtab.format_dataframe(result))
+    tabtab.print_dataframe(result)

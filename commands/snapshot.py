@@ -40,7 +40,7 @@ def snapshot_list():
     data = []
     for id_, currency in currencies.iterrows():
         data.append((id_, currency.time, currency.num, accounts.loc[id_].num))
-    print(tabtab.format(data, headers=['id', 'time', '# currencies', '# accounts']))
+    tabtab.print_table(data, headers=['id', 'time', '# currencies', '# accounts'])
 
 @lib.command()
 def snapshot_manual_create():

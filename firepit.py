@@ -39,7 +39,7 @@ def main():
             db.begin()
             result = f(*args)
             if isinstance(result, pd.DataFrame):
-                print(tabtab.format_dataframe(result))
+                tabtab.print_dataframe(result)
             elif result == None:
                 pass
             else:

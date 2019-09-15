@@ -1,9 +1,11 @@
 from collections import defaultdict
 
 import pandas as pd
-import prompt_toolkit
+from prompt_toolkit import PromptSession
 
 import tabtab
+
+prompt_session = PromptSession()
 
 COMMANDS = {}
 COMMAND_NAMES_BY_CATEGORY = defaultdict(list)
@@ -15,11 +17,8 @@ def command(category='debug'):
         return f
     return decorator
 
-def print_cursor(c):
-    print(tabtab.format(c.fetchall(), headers=[desc[0] for desc in c.description]))
-
 def cursor_to_dataframe(c):
     return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
 
 def prompt(*args):
-    return prompt_toolkit.prompt(*args)
+    return prompt_session.prompt(*args)

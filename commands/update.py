@@ -61,7 +61,7 @@ def update():
     left join currency_value cv2 on (cv2.symbol = cv.symbol and cv.snapshot < cv2.snapshot)
     where cv2.snapshot is null and c.active = true
     ''')
-    print(tabtab.format_dataframe(currencies))
+    tabtab.print_dataframe(currencies)
     for _, cur in currencies.iterrows():
         value = input(f'Value of {cur.symbol}? ')
         currency_record(cur.symbol, value)
