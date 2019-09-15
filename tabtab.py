@@ -37,7 +37,8 @@ def format(rows, headers=None, spacing=2, indent=1):
     lines = [indenter + line for line in lines]
     return '\n'.join(lines)
 
-def format_dataframe(df, **kwargs):
+def format_dataframe(df, headers=None, **kwargs):
     df = df.reset_index()
-    headers = list(df.columns)
-    return format(df.to_numpy().tolist(), headers=headers, **kwargs)
+    headers = headers or list(df.columns)
+    np_list = df.to_numpy().tolist()
+    return format(np_list, headers=headers, **kwargs)
