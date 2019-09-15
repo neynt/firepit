@@ -1,11 +1,12 @@
 import db
 import lib
+import tabtab
 
-CATEGORY = 'reporting'
+CATEGORY = 'debug'
 
 def run():
     """Lists currencies."""
-    db.c.execute('''
+    result = db.query_to_dataframe('''
     select c.symbol, c.name, c.active, cv.value
     from currencies c
     left join currency_value cv on c.symbol = cv.symbol
@@ -13,4 +14,4 @@ def run():
     where cv2.snapshot is null
       and c.active = true
     ''')
-    lib.print_cursor(db.c)
+    tabtab.format_dataframe(result)

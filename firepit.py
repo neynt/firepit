@@ -2,17 +2,21 @@ import inspect
 import shlex
 import sqlite3
 
-from colorama import Fore, Style
+from colorama import Fore, Back, Style
 
 import db
+import lib
 import modules
 
 def main():
     """Main entry point and input handling loop."""
-    print(f'\n  {Fore.RED}.{Fore.YELLOW}~{Fore.RED}.{Style.RESET_ALL} '
-          f'{Style.BRIGHT}{Fore.WHITE}firepit{Style.RESET_ALL}\n')
+    print(f'\n  {Fore.RED}.{Style.BRIGHT}{Fore.YELLOW}~{Style.NORMAL}{Fore.RED}.{Style.RESET_ALL} '
+          f'{Style.BRIGHT}{Fore.YELLOW}firepit{Fore.RESET}{Back.RESET}  '
+          f'{Fore.RESET}personal finance with a pit'
+          f'{Style.RESET_ALL}\n')
     while True:
-        args = shlex.split(input('> '))
+        line = lib.prompt('» ')
+        args = shlex.split(line)
         if not args:
             continue
         module = modules.COMMANDS.get(args[0])
@@ -29,7 +33,7 @@ def main():
                     if i < len(args):
                         print(f'{name}: {args[i]}')
                     else:
-                        args.append(input(f'{name}: '))
+                        args.append(lib.prompt(f'{name}: '))
             db.c = db.conn.cursor()
             module.run(*args)
             db.conn.commit()

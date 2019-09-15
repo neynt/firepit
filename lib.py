@@ -1,6 +1,7 @@
 import db
 import tabtab
 import pandas as pd
+import prompt_toolkit
 
 from commands import snapshot_manual_create
 
@@ -9,6 +10,9 @@ def print_cursor(c):
 
 def cursor_to_dataframe(c):
     return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
+
+def prompt(*args):
+    return prompt_toolkit.prompt(*args)
 
 def latest_snapshot_id():
     db.c.execute('''

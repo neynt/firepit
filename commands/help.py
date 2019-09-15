@@ -35,6 +35,9 @@ def run(cmd_name=None):
         for name, command in modules.COMMANDS.items():
             categories[command.CATEGORY].append(name)
         for CATEGORY, names in categories.items():
-            print(CATEGORY)
+            if CATEGORY == 'debug':
+                print(f'{CATEGORY}: (hidden)')
+                continue
+            print(CATEGORY + ':')
             for name in sorted(names):
                 print('  ' + name)

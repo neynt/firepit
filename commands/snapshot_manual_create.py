@@ -5,6 +5,6 @@ import db
 CATEGORY = 'debug'
 
 def run():
-    db.c.execute('''
+    db.execute('''
     insert into snapshots (time) values (?)
     ''', (datetime.now(timezone.utc),))

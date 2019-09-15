@@ -1,2 +1,6 @@
+[MASTER]
+disable=
+  missing-docstring,
+  invalid-name
 [FORMAT]
 good-names=e,i,c

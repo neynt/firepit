@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from commands import account_record, currency_record
+from commands import account_record, currency_record, snapshot_manual_create
 import config
 import db
 import lib
@@ -13,49 +13,43 @@ CATEGORY = 'tracking'
 
 def run():
     """Creates a new snapshot and opens browser windows."""
-    c = db.c
-    prev_snapshot_id = lib.latest_snapshot_id()
-    c.execute('''
-    insert into snapshots (time) values (?)
-    ''', (datetime.now(timezone.utc),))
-    snapshot_id = c.lastrowid
+    snapshot_manual_create.run()
 
     # accounts
-    c.execute('''
+    accounts = db.query_to_dataframe('''
     select a.id, a.name, a.currency, av.value, a.fetcher, a.fetcher_param
     from accounts a
     left join account_value av on av.id = a.id
     left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
     where av2.snapshot is null and a.active = true
     ''')
-    accounts = lib.cursor_to_dataframe(c)
-    accounts.fillna({'fetcher': 'none'}, inplace=True)
+    accounts.fillna({'fetcher': 'zzz---none---'}, inplace=True)
     groups = accounts.groupby('fetcher')
-    if config.BROWSER_CMD in ['firefox']:
-        os.system(f'{config.BROWSER_CMD} --new-window')
-    for fetcher, _ in groups:
-        if fetcher != 'none':
-            os.system(f'{config.BROWSER_CMD} {modules.FETCHERS.get(fetcher).URL}')
+    first = True
     for fetcher, rows in groups:
         for _, account in rows.iterrows():
-            if pd.isnull(account.value):
-                amount = input(f'{account["name"]} (new, {account.currency})? ')
+            #os.system(f'{config.BROWSER_CMD} {"--new-window" if first else ""} {modules.FETCHERS.get(fetcher).URL}')
+            first = False
+            if pd.isna(account.value):
+                amount = lib.prompt(f'{account["name"]} ({account.currency})? ')
             else:
-                amount = input(f'{account["name"]} (prev: {account.value} {account.currency})? ')
+                amount = lib.prompt(f'{account["name"]} (prev: {account.value} {account.currency})? ')
             if not amount:
-                print(f'Assuming ({account.value} {account.currency})')
-                amount = account.value
+                if pd.isna(account.value):
+                    print('Skipping')
+                else:
+                    print(f'Assuming ({account.value} {account.currency})')
+                    amount = account.value
             account_record.run(account.id, amount)
 
     # currencies
-    c.execute('''
+    currencies = db.query_to_dataframe('''
     select c.symbol, cv.value, c.name
     from currencies c
     left join currency_value cv on cv.symbol = c.symbol
     left join currency_value cv2 on (cv2.symbol = cv.symbol and cv.snapshot < cv2.snapshot)
     where cv2.snapshot is null and c.active = true
     ''')
-    currencies = lib.cursor_to_dataframe(c)
     print(currencies)
     for _, cur in currencies.iterrows():
         value = input(f'Value of {cur.symbol}? ')
