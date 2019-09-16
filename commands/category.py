@@ -1,5 +1,7 @@
 import pandas as pd
 
+from prompt_toolkit import prompt
+
 import db
 import lib
 import tabtab
@@ -9,6 +11,12 @@ def categories():
     return db.query_to_dataframe('''
     select * from categories order by name
     ''')
+
+def prompt_category():
+    cats = categories()
+    completer = lib.ListCompleter(cats.name.to_list())
+    name = lib.prompt('category: ', completer=completer, complete_while_typing=True)
+    return int(cats[cats.name == name].id)
 
 @lib.command()
 def category_tree():

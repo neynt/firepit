@@ -2,28 +2,30 @@
 
 ~ it's personal finance with a pit ~
 
+## Features
+
+- Keep track of your balances across different accounts
+- Multiple currency support
+
 ## Goals
 
 - Keep track of your finances across all sorts of different accounts and
   currencies
 - Automatically scrape transaction logs and account balances
-- Structured sqlite database
-
-## Fetchers
-
-Ideally, these would automatically fetch your account balances by automating
-your browser. In reality, this doesn't work very well because Selenium insists
-on copying your browser profile (which can easily exceed 800MB these days) and
-doesn't offer an option to use the profile in place -- and using a fresh
-profile results in most banks complaining about you having never used this
-device before.
-
-So fetchers are on hold.
 
 ## TOOD
 
-- Currency fetchers
-- Autocompletion when it matters (fzf?)
 - Transactions
-- Selenium-based automatic fetcher
 - Reconciling transactions
+- Auto-scrape currencies
+- Auto-scrape account balances
+  - Selenium is bad and insists on copying the profile each time, so maybe
+    make a browser extension
+- Generate some charts
+- Allow user to specify things by name instead of id
+- Selenium-based automatic fetcher
+
+## Competitors
+
+- [ebb](https://github.com/czinn/ebb): Basically the same thing but more
+  transaction-focused

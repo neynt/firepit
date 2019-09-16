@@ -6,12 +6,11 @@ import tabtab
 
 @lib.command()
 def latest_snapshot_id():
-    db.c.execute('''
+    result = db.query_one('''
     select id, time from snapshots
     order by time desc
     limit 1
     ''')
-    result = db.c.fetchone()
     if not result:
         # We could fail, but it's cleaner to just create one
         snapshot_manual_create()
