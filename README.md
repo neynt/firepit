@@ -1,6 +1,4 @@
-# Firepit
-
-~ it's personal finance with a pit ~
+![firepit - personal finance with a pit](https://i.neynt.ca/CMeePTu0kREvmLCB.png)
 
 ## Features
 
