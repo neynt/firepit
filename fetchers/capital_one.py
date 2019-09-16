@@ -1,6 +1,9 @@
+import config
+
 URL = 'https://verified.capitalone.com/sic-ui/'
 
-def fetch(driver, username, password):
+def fetch(driver):
+    username, password = config.FETCHER_CREDENTIALS['capital_one']
     driver.get(URL)
     driver.implicitly_wait(10)
     driver.find_element_by_id('username').send_keys(username)

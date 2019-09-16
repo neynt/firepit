@@ -4,7 +4,7 @@ create table if not exists snapshots
 );
 
 create table if not exists currencies
-( symbol varchar primary key not null
+( symbol varchar primary key
 , name varchar not null
 , active boolean not null default true
 , fetcher varchar
@@ -29,10 +29,27 @@ create table if not exists accounts
 );
 
 create table if not exists account_value
-( id int references accounts(id)
+( id int not null references accounts(id)
 , snapshot int not null references snapshots(id)
 , value numeric not null
 );
 
 create unique index idx_account_value_id_snapshot
 on account_value (id, snapshot);
+
+create table if not exists categories
+( id integer primary key
+, name varchar not null
+, parent integer references categories(id)
+);
+
+create table if not exists transactions
+( id integer primary key autoincrement
+, account_id integer references accounts(id)
+, day datetime not null
+, description varchar not null
+, category_id integer references categories(id)
+);
+
+create unique index idx_transactions_id
+on transactions (id);

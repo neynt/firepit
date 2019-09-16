@@ -10,13 +10,11 @@ import tabtab
 @lib.command(category='reporting')
 def status():
     """Shows status of your accounts."""
-    c = db.c
-    c.execute('''
+    snapshot = db.query_one('''
     select id, time from snapshots
     order by time desc
     limit 1
     ''')
-    snapshot = c.fetchone()
 
     print(f'Snapshot as of {snapshot[1]}')
     print()

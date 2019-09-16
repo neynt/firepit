@@ -7,7 +7,7 @@ def smart_str(item):
     plain = str(item)
     formatted = str(item)
     if type(item) in [float, np.float64]:
-        for decimals in [2, 3, 4, 5, 6, 7, 8]:
+        for decimals in [0, 2, 3, 4, 5, 6, 7, 8]:
             s = ('{:.%df}' % decimals).format(item)
             item_ = float(s)
             if abs((item - item_) / item) < 0.00001:
@@ -49,14 +49,11 @@ def print_table(rows, headers=None, spacing=2, indent=1):
 
     lines = []
     if headers:
-        print_formatted_text(HTML(format_row(col_widths, spacer, headers)))
-        print_formatted_text(HTML(format_row(col_widths, spacer, unformatted(['─' * w for w in col_widths]))))
+        print_formatted_text(HTML(indenter + format_row(col_widths, spacer, headers)))
+        print_formatted_text(HTML(indenter + format_row(col_widths, spacer, unformatted(['─' * w for w in col_widths]))))
 
     for row in rows:
-        print_formatted_text(HTML(format_row(col_widths, spacer, row)))
-
-    lines = [indenter + line for line in lines]
-    return '\n'.join(lines)
+        print_formatted_text(HTML(indenter + format_row(col_widths, spacer, row)))
 
 def print_dataframe(df, headers=None, **kwargs):
     df = df.reset_index()

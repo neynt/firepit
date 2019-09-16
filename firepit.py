@@ -1,3 +1,5 @@
+from commands.account import prompt_account
+
 import inspect
 import shlex
 import sqlite3
@@ -17,7 +19,7 @@ def main():
           f'{Fore.RESET}personal finance with a pit'
           f'{Style.RESET_ALL}\n')
     while True:
-        line = lib.prompt('» ')
+        line = lib.prompt('» ', completer=lib.CommandCompleter(), complete_while_typing=True)
         args = shlex.split(line)
         if not args:
             continue
@@ -35,7 +37,11 @@ def main():
                     if i < len(args):
                         print(f'{name}: {args[i]}')
                     else:
-                        args.append(lib.prompt(f'{name}: '))
+                        if name == 'account_id':
+                            result = prompt_account()
+                            args.append(result)
+                        else:
+                            args.append(lib.prompt(f'{name}: '))
             db.begin()
             result = f(*args)
             if isinstance(result, pd.DataFrame):

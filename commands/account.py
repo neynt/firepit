@@ -1,5 +1,7 @@
 from commands.snapshot import latest_snapshot_id
 
+from prompt_toolkit import prompt
+
 import db
 import lib
 import tabtab
@@ -7,10 +9,22 @@ import tabtab
 @lib.command()
 def accounts():
     """Lists accounts."""
-    accts = db.query_to_dataframe('''
+    return db.query_to_dataframe('''
     select * from accounts order by name
     ''')
-    tabtab.print_dataframe(accts)
+
+@lib.command()
+def active_accounts():
+    """Lists active accounts."""
+    return db.query_to_dataframe('''
+    select * from accounts order by name
+    ''')
+
+def prompt_account():
+    accts = active_accounts()
+    completer = lib.ListCompleter(accts.name.to_list())
+    name = prompt('account: ', completer=completer, complete_while_typing=True)
+    return int(accts[accts.name == name].id)
 
 @lib.command()
 def account_values():

@@ -17,6 +17,10 @@ def query(*args):
     c.execute(*args)
     return c.fetchall()
 
+def query_one(*args):
+    c.execute(*args)
+    return c.fetchone()
+
 def begin():
     global c
     c = conn.cursor()
