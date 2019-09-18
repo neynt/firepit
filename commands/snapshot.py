@@ -20,22 +20,20 @@ def latest_snapshot_id():
 
 @lib.command()
 def snapshot_list():
-    db.c.execute('''
+    currencies = db.query_to_dataframe('''
     select s.id, s.time, count(cv.value) num
     from snapshots s
     left join currency_value cv on cv.snapshot = s.id
     group by time
     order by time
-    ''')
-    currencies = lib.cursor_to_dataframe(db.c).set_index('id')
-    db.c.execute('''
+    ''').set_index('id')
+    accounts = db.query_to_dataframe('''
     select s.id, s.time, count(av.value) num
     from snapshots s
     left join account_value av on av.snapshot = s.id
     group by time
     order by time
-    ''')
-    accounts = lib.cursor_to_dataframe(db.c).set_index('id')
+    ''').set_index('id')
     data = []
     for id_, currency in currencies.iterrows():
         data.append((id_, currency.time, currency.num, accounts.loc[id_].num))

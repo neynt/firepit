@@ -2,26 +2,21 @@
 
 ## Features
 
-- Keep track of your balances across different accounts
+- Record your balances across different accounts
+- Track changes over time
 - Multiple currency support
-
-## Goals
-
-- Keep track of your finances across all sorts of different accounts and
-  currencies
-- Automatically scrape transaction logs and account balances
+- Sleek command-line interface based on `prompt_toolkit`
 
 ## TOOD
 
 - Transactions
 - Reconciling transactions
+- Allow user to specify things by name instead of id
 - Auto-scrape currencies
 - Auto-scrape account balances
   - Selenium is bad and insists on copying the profile each time, so maybe
     make a browser extension
 - Generate some charts
-- Allow user to specify things by name instead of id
-- Selenium-based automatic fetcher
 
 ## Competitors
 

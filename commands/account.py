@@ -22,8 +22,14 @@ def active_accounts():
 
 def prompt_account():
     accts = active_accounts()
-    completer = lib.ListCompleter(accts.name.to_list())
-    name = prompt('account: ', completer=completer, complete_while_typing=True)
+    acct_names = accts.name.to_list()
+    completer = lib.ListCompleter(acct_names)
+    validator = lib.ListValidator(acct_names)
+    name = prompt('account: ',
+                  completer=completer,
+                  validator=validator,
+                  complete_while_typing=True,
+                  validate_while_typing=False)
     return int(accts[accts.name == name].id)
 
 @lib.command()

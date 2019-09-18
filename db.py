@@ -1,7 +1,10 @@
 import sqlite3
 import pandas as pd
 
-conn = sqlite3.connect('data.sqlite')
+sqlite3.register_adapter(bool, int)
+sqlite3.register_converter("boolean", lambda v: bool(int(v)))
+
+conn = sqlite3.connect('data.sqlite', detect_types=sqlite3.PARSE_DECLTYPES)
 c = conn.cursor()
 
 c.execute('pragma foreign_keys = on;')

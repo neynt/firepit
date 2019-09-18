@@ -1,6 +1,6 @@
 create table if not exists snapshots
 ( id integer primary key autoincrement
-, time datetime not null
+, time timestamp not null
 );
 
 create table if not exists currencies
@@ -46,7 +46,7 @@ create table if not exists categories
 create table if not exists transactions
 ( id integer primary key autoincrement
 , account_id integer references accounts(id)
-, day datetime not null
+, day timestamp not null
 , description varchar not null
 , category_id integer references categories(id)
 );
