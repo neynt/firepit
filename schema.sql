@@ -28,6 +28,9 @@ create table if not exists accounts
 , fetcher_param varchar
 );
 
+create unique index idx_accounts_name
+on accounts (name);
+
 create table if not exists account_value
 ( id int not null references accounts(id)
 , snapshot int not null references snapshots(id)

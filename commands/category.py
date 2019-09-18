@@ -14,8 +14,8 @@ def categories():
 
 def prompt_category():
     cats = categories()
-    completer = lib.ListCompleter(cats.name.to_list())
-    name = lib.prompt('category: ', completer=completer, complete_while_typing=True)
+    cat_names = cats.name.to_list()
+    name = lib.prompt_list(cat_names, 'category')
     return int(cats[cats.name == name].id)
 
 @lib.command()
@@ -40,10 +40,10 @@ def category_tree():
         aux(root, '└ ' if last else '├ ')
 
 @lib.command(category='setup')
-def category_new(name, parent=None):
+def category_new(name, parent_category_id=None):
     db.execute('''
     insert into categories (name, parent) values (?, ?)
-    ''', (name, parent))
+    ''', (name, parent_category_id))
 
 @lib.command()
 def category_del(category_id):

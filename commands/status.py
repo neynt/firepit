@@ -16,7 +16,7 @@ def status():
     limit 1
     ''')
 
-    print(f'Snapshot as of {snapshot[1]}')
+    print(f'Snapshot as of {lib.smart_str(snapshot[1])[0]}')
     print()
 
     currencies = currency_values()

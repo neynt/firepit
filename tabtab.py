@@ -1,4 +1,6 @@
 """Tabular output utilities."""
+# >   >   tabtab
+
 from prompt_toolkit import print_formatted_text, HTML
 import pandas as pd
 

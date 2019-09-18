@@ -1,4 +1,5 @@
 from commands.account import prompt_account
+from commands.category import prompt_category
 
 import inspect
 import shlex
@@ -19,7 +20,7 @@ def main():
           f'{Fore.RESET}personal finance with a pit'
           f'{Style.RESET_ALL}\n')
     while True:
-        line = lib.prompt('» ', completer=lib.CommandCompleter(), complete_while_typing=True)
+        line = lib.prompt_cmd('» ', completer=lib.CommandCompleter(), complete_while_typing=True)
         args = shlex.split(line)
         if not args:
             continue
@@ -38,8 +39,11 @@ def main():
                         print(f'{name}: {args[i]}')
                     else:
                         if name == 'account_id':
-                            result = prompt_account()
-                            args.append(result)
+                            args.append(prompt_account())
+                        elif 'category_id' in name:
+                            args.append(prompt_category())
+                        elif name == 'day':
+                            args.append(lib.prompt_datetime(f'{name}: '))
                         else:
                             args.append(lib.prompt(f'{name}: '))
             db.begin()

@@ -23,13 +23,7 @@ def active_accounts():
 def prompt_account():
     accts = active_accounts()
     acct_names = accts.name.to_list()
-    completer = lib.ListCompleter(acct_names)
-    validator = lib.ListValidator(acct_names)
-    name = prompt('account: ',
-                  completer=completer,
-                  validator=validator,
-                  complete_while_typing=True,
-                  validate_while_typing=False)
+    name = lib.prompt_list(acct_names, 'account')
     return int(accts[accts.name == name].id)
 
 @lib.command()
@@ -95,7 +89,7 @@ def account_set_fetcher(account_id, fetcher, fetcher_param):
 def account_history():
     """Shows history of an account over time."""
     result = db.query_to_dataframe('''
-    select a.id, s.time, av.value, a.name, a.currency
+    select s.time, av.value, a.name, a.currency
     from accounts a
     left join account_value av on av.id = a.id
     left join snapshots s on av.snapshot = s.id

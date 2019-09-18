@@ -1,12 +1,11 @@
+from datetime import datetime
 from collections import defaultdict
 
 import numpy as np
 import pandas as pd
-from prompt_toolkit import PromptSession
+from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.validation import Validator, ValidationError
-
-prompt_session = PromptSession()
 
 COMMANDS = {}
 COMMAND_NAMES_BY_CATEGORY = defaultdict(list)
@@ -21,8 +20,9 @@ def command(category='debug'):
 def cursor_to_dataframe(c):
     return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
 
-def prompt(*args, **kwargs):
-    return prompt_session.prompt(*args, **kwargs)
+prompt_session_cmd = PromptSession()
+def prompt_cmd(*args, **kwargs):
+    return prompt_session_cmd.prompt(*args, **kwargs)
 
 class ListCompleter(Completer):
     def __init__(self, items):
@@ -51,6 +51,65 @@ class CommandCompleter(Completer):
                 yield Completion(name, start_position=-len(current))
         # TODO: Complete command parameters
 
+def prompt_list(items, prompt_word):
+    completer = ListCompleter(items)
+    validator = ListValidator(items)
+    res = prompt(f'{prompt_word}: ',
+                 completer=completer,
+                 validator=validator,
+                 complete_while_typing=True,
+                 validate_while_typing=False)
+    return res
+
+def parse_datetime_fragment(fragment):
+    result = []
+    result.append(('year', datetime.now().year))
+    formats = [
+        ('%Y-%m-%d', ['year', 'month', 'day']),
+        ('%Y/%m/%d', ['year', 'month', 'day']),
+        ('%b', ['month']),
+        ('%B', ['month']),
+        ('%H:%M', ['hour', 'minute']),
+    ]
+    for fmt, parts in formats:
+        try:
+            dt = datetime.strptime(fragment, fmt)
+            for part in parts:
+                result.append((part, getattr(dt, part)))
+        except ValueError:
+            pass
+    try:
+        as_int = int(fragment)
+        if as_int >= 1000:
+            result.append(('year', as_int))
+        if 1 <= as_int <= 31:
+            result.append(('day', as_int))
+    except ValueError:
+        pass
+    return result
+
+def parse_datetime(s):
+    datetime_parts = []
+    for fragment in s.split():
+        parts = parse_datetime_fragment(fragment)
+        if not parts:
+            raise ValueError(f'Could not parse datetime fragment {fragment}')
+        datetime_parts.extend(parts)
+    return datetime(**{part: value for part, value in datetime_parts})
+
+class DatetimeValidator(Validator):
+    def validate(self, document):
+        pos = len(document.text)
+        try:
+            parse_datetime(document.text)
+        except (ValueError, TypeError) as e:
+            raise ValidationError(message=str(e), cursor_position=pos)
+
+def prompt_datetime(*args):
+    res = prompt(*args, validator=DatetimeValidator(),
+                 validate_while_typing=True)
+    return parse_datetime(res)
+
 def smart_str(item):
     """Convert to string, with smart handling for certain types."""
     plain = str(item)
@@ -70,8 +129,11 @@ def smart_str(item):
                 formatted = f'<ansigreen>{plain}</ansigreen>'
     elif type(item) in [int, np.int64]:
         formatted = f'<ansiblue>{plain}</ansiblue>'
-    elif type(item) == pd.Timestamp:
-        plain = item.strftime("%Y %b %d %H:%M")
+    elif type(item) in [pd.Timestamp, datetime]:
+        if item.year != datetime.now().year:
+            plain = item.strftime("%Y %b %d %H:%M")
+        else:
+            plain = item.strftime("%b %d %H:%M")
         formatted = plain
     elif type(item) == bool:
         if item:
@@ -88,4 +150,3 @@ def smart_str(item):
     else:
         print('note: unhandled type', type(item))
     return plain, formatted
-
