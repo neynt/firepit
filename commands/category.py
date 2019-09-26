@@ -1,10 +1,7 @@
 import pandas as pd
 
-from prompt_toolkit import prompt
-
 import db
 import lib
-import tabtab
 
 @lib.command()
 def categories():
@@ -12,36 +9,45 @@ def categories():
     select * from categories order by name
     ''')
 
-def prompt_category():
+@lib.prompter('category_id')
+def prompt_category(*_args):
     cats = categories()
     cat_names = cats.name.to_list()
-    name = lib.prompt_list(cat_names, 'category')
-    return int(cats[cats.name == name].id)
+    name = lib.prompt_list_nonstrict(cat_names, 'category: ')
+    if name in cat_names:
+        return int(cats[cats.name == name].id)
+    if lib.prompt_confirm(f'Create new category "{name}"?'):
+        return lib.call_via_prompts(category_new, name)
 
-@lib.command()
-def category_tree():
+def category_tree_lines():
     cats = db.query_to_dataframe('''
-    select c1.name as name, c2.name as parent
-    from categories c1
-    left join categories c2
-    on c1.parent = c2.id
+    select id, name, parent from categories c
     ''')
-    roots = cats[pd.isna(cats.parent)].name
-    def aux(name, prefix):
-        print(prefix + name)
-        children = cats[cats.parent == name].name
+    print(cats)
+    roots = cats[pd.isna(cats.parent)].id
+    def aux(id_, prefix):
+        name = cats[cats.id == id_].name.iloc[0]
+        yield (id_, prefix + name)
+        children = cats[cats.parent == id_].id
         prefix = prefix[:-2] + ('│ ' if prefix[-2:] == '├ ' else '  ')
-        for i, child in enumerate(children):
+        for i, child_id in enumerate(children):
             last = i == len(children) - 1
-            aux(child, prefix + ('└ ' if last else '├ '))
+            for line in aux(child_id, prefix + ('└ ' if last else '├ ')):
+                yield line
 
     for i, root in enumerate(roots):
         last = i == len(roots) - 1
-        aux(root, '└ ' if last else '├ ')
+        for line in aux(root, '└ ' if last else '├ '):
+            yield line
+
+@lib.command()
+def category_tree():
+    for _category_id, line in category_tree_lines():
+        print(line)
 
 @lib.command(category='setup')
 def category_new(name, parent_category_id=None):
-    db.execute('''
+    return db.insert('''
     insert into categories (name, parent) values (?, ?)
     ''', (name, parent_category_id))
 

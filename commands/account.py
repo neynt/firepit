@@ -1,10 +1,7 @@
 from commands.snapshot import latest_snapshot_id
 
-from prompt_toolkit import prompt
-
 import db
 import lib
-import tabtab
 
 @lib.command()
 def accounts():
@@ -13,6 +10,13 @@ def accounts():
     select * from accounts order by name
     ''')
 
+@lib.prompter('account_id')
+def prompt_account(*_args):
+    accts = active_accounts()
+    acct_names = accts.name.to_list()
+    name = lib.prompt_list(acct_names, 'account: ')
+    return int(accts[accts.name == name].id)
+
 @lib.command()
 def active_accounts():
     """Lists active accounts."""
@@ -20,16 +24,20 @@ def active_accounts():
     select * from accounts order by name
     ''')
 
-def prompt_account():
-    accts = active_accounts()
-    acct_names = accts.name.to_list()
-    name = lib.prompt_list(acct_names, 'account')
-    return int(accts[accts.name == name].id)
+@lib.command()
+def account_values(snapshot_id):
+    return db.query_to_dataframe('''
+    select a.id, a.name, av.value, a.currency as curr
+    from accounts a
+    left join account_value av on av.id = a.id
+    where av.snapshot = ?
+    ''', (snapshot_id,))
 
 @lib.command()
-def account_values():
+def hacky_latest_account_values():
+    """Super hacky way to get the latest account values without a subquery."""
     return db.query_to_dataframe('''
-    select a.name, av.value, a.currency as curr
+    select a.id, a.name, av.value, a.currency as curr
     from accounts a
     left join account_value av on av.id = a.id
     left join account_value av2 on (av2.id = av.id and av.snapshot < av2.snapshot)
@@ -57,18 +65,12 @@ def account_record(account_id, value):
     ''', (account_id, snapshot_id, value, value))
 
 @lib.command(category='setup')
-def account_del():
+def account_del(account_id):
     """Deletes an account."""
-    accts = db.query_to_dataframe('''
-    select id, name, currency
-    from accounts
-    ''')
-    tabtab.print_dataframe(accts)
-    id_ = lib.prompt('Delete which id? ')
     db.execute('''
     delete from accounts
     where id = ?
-    ''', (id_,))
+    ''', (account_id,))
 
 @lib.command()
 def account_mod(account_id, prop_name, value):
@@ -88,10 +90,9 @@ def account_set_fetcher(account_id, fetcher, fetcher_param):
 @lib.command()
 def account_history():
     """Shows history of an account over time."""
-    result = db.query_to_dataframe('''
+    return db.query_to_dataframe('''
     select s.time, av.value, a.name, a.currency
     from accounts a
     left join account_value av on av.id = a.id
     left join snapshots s on av.snapshot = s.id
     ''', ())
-    tabtab.print_dataframe(result)

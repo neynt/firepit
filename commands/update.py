@@ -1,6 +1,7 @@
 from commands.account import account_record
 from commands.currency import currency_record
 from commands.snapshot import snapshot_manual_create
+from commands.transaction import transaction_loop
 
 import os
 
@@ -52,6 +53,11 @@ def update():
                     print(f'Assuming ({account.value} {account.currency})')
                     amount = account.value
             account_record(account.id, amount)
+
+            if lib.prompt_confirm('Record transactions?'):
+                # TODO: print most recent tx to provide reference
+                # point
+                transaction_loop(account.id)
 
     # currencies
     currencies = db.query_to_dataframe('''

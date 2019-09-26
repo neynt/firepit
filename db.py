@@ -10,6 +10,16 @@ c = conn.cursor()
 c.execute('pragma foreign_keys = on;')
 conn.commit()
 
+def begin():
+    global c
+    c = conn.cursor()
+
+def commit():
+    conn.commit()
+
+def rollback():
+    conn.rollback()
+
 def query_to_dataframe(*args):
     c.execute(*args)
     data = c.fetchall()
@@ -24,15 +34,12 @@ def query_one(*args):
     c.execute(*args)
     return c.fetchone()
 
-def begin():
-    global c
-    c = conn.cursor()
+def last_row_id():
+    return c.lastrowid
+
+def insert(*args):
+    c.execute(*args)
+    return c.lastrowid
 
 def execute(*args):
     c.execute(*args)
-
-def commit():
-    conn.commit()
-
-def rollback():
-    conn.rollback()

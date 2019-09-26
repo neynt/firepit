@@ -10,8 +10,9 @@ from colorama import Fore, Back, Style
 
 import db
 import lib
-import modules
 import tabtab
+import modules
+import amortize
 
 def main():
     """Main entry point and input handling loop."""
@@ -21,7 +22,11 @@ def main():
           f'{Style.RESET_ALL}\n')
     while True:
         line = lib.prompt_cmd('» ', completer=lib.CommandCompleter(), complete_while_typing=True)
-        args = shlex.split(line)
+        try:
+            args = shlex.split(line)
+        except ValueError as e:
+            print(e)
+            continue
         if not args:
             continue
         f = lib.COMMANDS.get(args[0])
@@ -30,24 +35,8 @@ def main():
             print('command not found')
             continue
         try:
-            sig = inspect.signature(f)
-            params = [(k, v) for k, v in sig.parameters.items()
-                      if v.default == inspect.Parameter.empty]
-            if len(params) > len(args):
-                for i, (name, _) in enumerate(params):
-                    if i < len(args):
-                        print(f'{name}: {args[i]}')
-                    else:
-                        if name == 'account_id':
-                            args.append(prompt_account())
-                        elif 'category_id' in name:
-                            args.append(prompt_category())
-                        elif name == 'day':
-                            args.append(lib.prompt_datetime(f'{name}: '))
-                        else:
-                            args.append(lib.prompt(f'{name}: '))
             db.begin()
-            result = f(*args)
+            result = lib.call_via_prompts(f, *args)
             if isinstance(result, pd.DataFrame):
                 tabtab.print_dataframe(result)
             elif result == None:

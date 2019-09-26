@@ -1,3 +1,4 @@
+import inspect
 from datetime import datetime
 from collections import defaultdict
 
@@ -6,6 +7,8 @@ import pandas as pd
 from prompt_toolkit import PromptSession, prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.validation import Validator, ValidationError
+
+import amortize
 
 COMMANDS = {}
 COMMAND_NAMES_BY_CATEGORY = defaultdict(list)
@@ -17,8 +20,23 @@ def command(category='debug'):
         return f
     return decorator
 
+PROMPTERS = {}
+def prompter(arg_name):
+    def decorator(f):
+        PROMPTERS[arg_name] = f
+        return f
+    return decorator
+
 def cursor_to_dataframe(c):
     return pd.DataFrame(c.fetchall(), columns=[desc[0] for desc in c.description])
+
+class CommandCompleter(Completer):
+    def get_completions(self, document, complete_event):
+        current = document.current_line_before_cursor
+        for name in COMMANDS.keys():
+            if name.startswith(current):
+                yield Completion(name, start_position=-len(current))
+        # TODO: Complete command parameters
 
 prompt_session_cmd = PromptSession()
 def prompt_cmd(*args, **kwargs):
@@ -43,21 +61,39 @@ class ListValidator(Validator):
             raise ValidationError(message='Not a valid choice',
                                   cursor_position=len(document.text))
 
-class CommandCompleter(Completer):
-    def get_completions(self, document, complete_event):
-        current = document.current_line_before_cursor
-        for name in COMMANDS.keys():
-            if name.startswith(current):
-                yield Completion(name, start_position=-len(current))
-        # TODO: Complete command parameters
-
-def prompt_list(items, prompt_word):
+def prompt_list(items, *args):
+    items = sorted(items, key=len)
     completer = ListCompleter(items)
     validator = ListValidator(items)
-    res = prompt(f'{prompt_word}: ',
+    res = prompt(*args,
                  completer=completer,
                  validator=validator,
                  complete_while_typing=True,
+                 validate_while_typing=False)
+    return res
+
+def prompt_list_nonstrict(items, *args):
+    items = sorted(items, key=len)
+    completer = ListCompleter(items)
+    res = prompt(*args,
+                 completer=completer,
+                 complete_while_typing=True)
+    return res
+
+class AmortizeValidator(Validator):
+    def validate(self, document):
+        try:
+            amortize.of_string(document.text)
+        except ValueError:
+            raise ValidationError(message='Invalid amortization',
+                                  cursor_position=len(document.text))
+
+def prompt_amortize():
+    # TODO: make this format more discoverable
+    validator = AmortizeValidator()
+    print('amortization format: [linear|point] NUMBER days')
+    res = prompt(f'amortization: ',
+                 validator=validator,
                  validate_while_typing=False)
     return res
 
@@ -105,16 +141,54 @@ class DatetimeValidator(Validator):
         except (ValueError, TypeError) as e:
             raise ValidationError(message=str(e), cursor_position=pos)
 
+@prompter('day')
+@prompter('time_start')
+@prompter('time_end')
 def prompt_datetime(*args):
-    res = prompt(*args, validator=DatetimeValidator(),
+    res = prompt(*args,
+                 validator=DatetimeValidator(),
                  validate_while_typing=True)
     return parse_datetime(res)
 
-def smart_str(item):
+def prompt_confirm(prompt_word):
+    return prompt_list(['y', 'n'], f'{prompt_word} (y/n): ') == 'y'
+
+class IntValidator(Validator):
+    def validate(self, document):
+        pos = len(document.text)
+        try:
+            int(document.text)
+        except ValueError as e:
+            raise ValidationError(message=str(e), cursor_position=pos)
+
+def prompt_int(*args):
+    res = prompt(*args,
+                 validator=IntValidator(),
+                 validate_while_typing=True)
+    return int(res)
+
+class FloatValidator(Validator):
+    def validate(self, document):
+        pos = len(document.text)
+        try:
+            float(document.text)
+        except ValueError as e:
+            raise ValidationError(message=str(e), cursor_position=pos)
+
+def prompt_float(*args):
+    res = prompt(*args,
+                 validator=FloatValidator(),
+                 validate_while_typing=True)
+    return float(res)
+
+def format_str(item):
     """Convert to string, with smart handling for certain types."""
     plain = str(item)
     formatted = plain
-    if type(item) in [float, np.float64]:
+    if item == None or pd.isna(item):
+        plain = 'n/a'
+        formatted = f'<ansiblack>{plain}</ansiblack>'
+    elif type(item) in [float, np.float64]:
         if item != 0.0:
             for decimals in [0, 2, 3, 4, 5, 6, 7, 8]:
                 s = ('{:.%df}' % decimals).format(item)
@@ -144,9 +218,30 @@ def smart_str(item):
             formatted = f'<ansired>{plain}</ansired>'
     elif type(item) == str:
         pass
-    elif item == None:
-        plain = 'n/a'
-        formatted = f'<ansiblack>{plain}</ansiblack>'
     else:
         print('note: unhandled type', type(item))
     return plain, formatted
+
+def smart_str(item):
+    return format_str(item)[1]
+
+def call_via_prompts(f, *args, echo_passed=False, **kwargs):
+    args = list(args)
+    sig = inspect.signature(f)
+    params = [(k, v) for k, v in sig.parameters.items()
+              if v.default == inspect.Parameter.empty]
+    if len(params) > len(args):
+        for i, (name, param) in enumerate(params):
+            if i < len(args) or name in kwargs:
+                if echo_passed:
+                    print(f'{name}: {args[i]}')
+            elif name in PROMPTERS:
+                args.append(PROMPTERS[name](f'{name}: '))
+            elif param.default != inspect.Parameter.empty:
+                if echo_passed:
+                    print(f'assuming {name}: {param.default}')
+            else:
+                args.append(prompt(f'{name}: '))
+
+    return f(*args, **kwargs)
+

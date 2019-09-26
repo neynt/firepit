@@ -2,7 +2,6 @@ from commands.snapshot import latest_snapshot_id
 
 import db
 import lib
-import tabtab
 
 @lib.command()
 def currencies():
@@ -15,11 +14,20 @@ def currencies():
     where cv2.snapshot is null
       and c.active = true
     ''')
-    tabtab.print_dataframe(result)
     return result
 
 @lib.command()
-def currency_values():
+def currency_values(snapshot_id):
+    return db.query_to_dataframe('''
+    select c.symbol, c.name, cv.value
+    from currencies c
+    left join currency_value cv on c.symbol = cv.symbol
+    where cv.snapshot = ?
+    ''', (snapshot_id,))
+
+@lib.command()
+def hacky_latest_currency_values():
+    """Super hacky way to get the latest currency values without a subquery."""
     return db.query_to_dataframe('''
     select c.symbol, c.name, cv.value
     from currencies c

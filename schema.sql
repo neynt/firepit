@@ -44,13 +44,16 @@ create table if not exists categories
 ( id integer primary key
 , name varchar not null
 , parent integer references categories(id)
+, default_amortization varchar not null default 'point'
 );
 
 create table if not exists transactions
 ( id integer primary key autoincrement
 , account_id integer references accounts(id)
 , day timestamp not null
+, amount numeric not null
 , description varchar not null
+, amortization varchar not null default 'point'
 , category_id integer references categories(id)
 );
 
