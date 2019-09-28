@@ -1,5 +1,6 @@
 import db
 import lib
+import tabtab
 
 @lib.command()
 def transactions():
@@ -26,9 +27,9 @@ def transaction_new(account_id, day, description, amount, category_id):
     ''', (account_id, day, amount, description, category_id))
 
 @lib.prompter('description')
-def prompt_transaction_description(*_args):
+def prompt_transaction_description(*args):
     descs = set(transactions().description)
-    return lib.prompt_list_nonstrict(descs)
+    return lib.prompt_list_nonstrict(descs, *args)
 
 @lib.command()
 def transaction_del(transaction_id):
@@ -38,6 +39,19 @@ def transaction_del(transaction_id):
 
 @lib.command()
 def transaction_loop(account_id):
+    # First print out previous 3 transactions
+    result = db.query_to_dataframe('''
+    select day, amount, description
+    from transactions
+    where account_id = ?
+    order by day desc
+    limit 3
+    ''', (account_id,))
+    if result.empty:
+        print('No previous transactions for this account.')
+    else:
+        print('Last transactions recorded:')
+        tabtab.print_dataframe(result)
     try:
         while True:
             ts = transactions()

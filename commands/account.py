@@ -21,7 +21,9 @@ def prompt_account(*_args):
 def active_accounts():
     """Lists active accounts."""
     return db.query_to_dataframe('''
-    select * from accounts order by name
+    select * from accounts
+    where active
+    order by name
     ''')
 
 @lib.command()
@@ -54,9 +56,8 @@ def account_new(name, currency):
     ''', (name, currency))
 
 @lib.command()
-def account_record(account_id, value):
+def account_record(account_id, snapshot_id, value):
     """Sets the value of the account for the latest snapshot."""
-    snapshot_id = latest_snapshot_id()
     db.execute('''
     insert into account_value (id, snapshot, value)
     values (?, ?, ?)

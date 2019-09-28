@@ -1,5 +1,6 @@
 *.log
 *.sqlite
+.mypy_cache
 __pycache__
 firepit.side
 config.py

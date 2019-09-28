@@ -45,11 +45,14 @@ def main():
                 print(f'Command returned {type(result)}: {result}')
             db.commit()
         except KeyboardInterrupt as e:
-            print('Cancelled.')
-            db.rollback()
+            if lib.prompt_confirm('Save changes?'):
+                db.commit()
+            else:
+                db.rollback()
+                print('Cancelled.')
         except sqlite3.IntegrityError as e:
-            print(e)
             db.rollback()
+            print(e)
 
 if __name__ == '__main__':
     try:

@@ -5,7 +5,7 @@ import lib
 import tabtab
 
 @lib.command()
-def latest_snapshot_id():
+def latest_snapshot_id_and_time():
     result = db.query_one('''
     select id, time from snapshots
     order by time desc
@@ -14,8 +14,12 @@ def latest_snapshot_id():
     if not result:
         # We could fail, but it's cleaner to just create one
         snapshot_manual_create()
-        return latest_snapshot_id()
-    id_, time = result
+        return latest_snapshot_id_and_time()
+    return result
+
+@lib.command()
+def latest_snapshot_id():
+    id_, _ = latest_snapshot_id_and_time()
     return id_
 
 @lib.command()
