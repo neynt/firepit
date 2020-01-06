@@ -11,13 +11,22 @@ def transactions():
     ''')
 
 @lib.command()
-def transactions_between(time_start, time_end):
+def transactions_between(min_date, max_date):
     return db.query_to_dataframe('''
     select id, account_id, category_id, day, amount, description, amortization
     from transactions
     where day >= ? and day <= ?
     order by day
-    ''', (time_start, time_end))
+    ''', (min_date, max_date))
+
+@lib.command()
+def transactions_for_account(account_id):
+    return db.query_to_dataframe('''
+    select id, account_id, category_id, day, amount, description, amortization
+    from transactions
+    where account_id = ?
+    order by day
+    ''', (account_id,))
 
 @lib.command()
 def transaction_new(account_id, day, description, amount, category_id):
@@ -59,7 +68,7 @@ def transaction_loop(account_id):
             description = lib.PROMPTERS['description']('description: ')
             default_category = ts[ts.description == description].category_id
             # TODO: make this work
-            print(default_category)
+            #print(default_category)
             lib.call_via_prompts(transaction_new, account_id, day, description)
     except KeyboardInterrupt:
         pass

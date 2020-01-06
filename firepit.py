@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 from commands.account import prompt_account
 from commands.category import prompt_category
 
+import sys
 import inspect
 import shlex
 import sqlite3
@@ -13,6 +15,11 @@ import lib
 import tabtab
 import modules
 import amortize
+
+if len(sys.argv) <= 1:
+    print('usage: firepit SQLITE_FILE')
+    sys.exit(0)
+db.init(sys.argv[1])
 
 def main():
     """Main entry point and input handling loop."""

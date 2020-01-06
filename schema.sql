@@ -50,7 +50,7 @@ create table if not exists categories
 create table if not exists transactions
 ( id integer primary key autoincrement
 , account_id integer references accounts(id)
-, day timestamp not null
+, day date not null
 , amount numeric not null
 , description varchar not null
 , amortization varchar not null default 'point'
@@ -59,3 +59,9 @@ create table if not exists transactions
 
 create unique index idx_transactions_id
 on transactions (id);
+
+create view if not exists vw_transactions as
+select t.id, t.day, t.amount, t.description, a.name as account, c.name as category
+from transactions t
+join accounts a on t.account_id = a.id
+join categories c on t.category_id = c.id;

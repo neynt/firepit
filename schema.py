@@ -6,18 +6,18 @@
 from collections import defaultdict
 import re
 import sqlite3
+import sys
 
-def main():
-    conn = sqlite3.connect('data.sqlite')
-
+def main(db_file):
+    conn = sqlite3.connect(db_file)
     schema = open('schema.sql').read()
     statements = map(str.strip, re.split(r';\n', schema))
     kinds = [
         'drop table',
         'create table',
         'index',
+        'create view',
     ]
-
     statements_of_kind = defaultdict(list)
     for statement in statements:
         if not statement:
@@ -30,14 +30,23 @@ def main():
             print("Error: I don't know what this means. Stopping just in case.")
             print(statement)
             return
-
     c = conn.cursor()
 
+    create_tables = statements_of_kind['create table']
+    create_indexes = statements_of_kind['index']
+    create_views = statements_of_kind['create view']
+
     creates = []
-    for statement in statements_of_kind['create table']:
+    for statement in create_tables:
         table_name = re.search(r'create table if not exists ([a-z_]+)', statement, re.DOTALL)[1]
         table_name_new = table_name + '_new'
         creates.append((table_name, table_name_new, statement))
+
+    print('# Dropping views.')
+    for statement in create_views:
+        view_name = re.search(r'create view if not exists ([a-z_]+)', statement, re.DOTALL)[1]
+        c.execute(f'drop view if exists {view_name}')
+        print(view_name)
 
     # Create dummy tables.
     for table_name, table_name_new, statement in creates:
@@ -45,7 +54,7 @@ def main():
 
     print('# Creating new tables and porting over data.')
     for table_name, table_name_new, statement in creates:
-        print(f'## {table_name}')
+        print(table_name)
         statement_new = re.sub(table_name, table_name_new, statement)
         c.execute(f'''
             drop table if exists {table_name_new}
@@ -80,8 +89,12 @@ def main():
             alter table {table_name_new} rename to {table_name};
         ''')
 
-    print(f"# Creating {len(statements_of_kind['index'])} indexes.")
-    for statement in statements_of_kind['index']:
+    print(f"# Creating {len(create_indexes)} indexes.")
+    for statement in create_indexes:
+        c.execute(statement)
+
+    print(f'# Creating {len(create_views)} views.')
+    for statement in create_views:
         c.execute(statement)
 
     print('# Done')
@@ -89,4 +102,7 @@ def main():
     conn.commit()
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) < 2:
+        print('point me to the sqlite database')
+        sys.exit(1)
+    main(sys.argv[1])

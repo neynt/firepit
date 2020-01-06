@@ -9,7 +9,8 @@
 
 ## TOOD
 
-- Transactions
+- Status at different points in time
+- Make resume not make a tab firehose
 - Reconciling transactions
 - Allow user to specify things by name instead of id
 - Auto-scrape currencies

@@ -2,13 +2,14 @@ import sqlite3
 import pandas as pd
 
 sqlite3.register_adapter(bool, int)
-sqlite3.register_converter("boolean", lambda v: bool(int(v)))
+sqlite3.register_converter('boolean', lambda v: bool(int(v)))
 
-conn = sqlite3.connect('data.sqlite', detect_types=sqlite3.PARSE_DECLTYPES)
-c = conn.cursor()
-
-c.execute('pragma foreign_keys = on;')
-conn.commit()
+def init(sqlite_file):
+    global conn
+    conn = sqlite3.connect(sqlite_file, detect_types=sqlite3.PARSE_DECLTYPES)
+    c = conn.cursor()
+    c.execute('pragma foreign_keys = on;')
+    conn.commit()
 
 def begin():
     global c

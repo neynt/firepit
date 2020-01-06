@@ -1,3 +1,4 @@
+import html
 import inspect
 from datetime import datetime
 from collections import defaultdict
@@ -184,7 +185,7 @@ def prompt_float(*args):
 def format_str(item):
     """Convert to string, with smart handling for certain types."""
     plain = str(item)
-    formatted = plain
+    formatted = html.escape(plain)
     if item == None or pd.isna(item):
         plain = 'n/a'
         formatted = f'<ansiblack>{plain}</ansiblack>'
@@ -192,9 +193,8 @@ def format_str(item):
         if item != 0.0:
             for decimals in [0, 2, 3, 4, 5, 6, 7, 8]:
                 s = ('{:.%df}' % decimals).format(item)
-                item_ = float(s)
-                diff = abs(item - item_)
-                if diff < 0.1**(decimals + 2) and diff / item < 0.01:
+                diff = abs(item - float(s))
+                if diff < 0.1**(decimals + 3) and diff / item < 0.00001:
                     plain = s
                     break
             if item < 0:
