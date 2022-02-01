@@ -1,8 +1,6 @@
 from collections import defaultdict
 import inspect
-
 import lib
-import modules
 
 # unused
 def print_subtree(children, indent=0):

@@ -1,7 +1,5 @@
 import db
 import lib
-import config
-import modules
 
 @lib.command()
 def sql(query):
@@ -16,9 +14,3 @@ def mod(table, id_, prop_name, value):
     set {prop_name}=?
     where id=?
     ''', (value, id_))
-
-@lib.command()
-def test_fetcher(name):
-    global driver
-    driver = config.make_webdriver()
-    print(modules.FETCHERS[name].fetch(driver))
