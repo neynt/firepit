@@ -13,4 +13,3 @@ def load_modules(directory):
     return modules
 
 COMMANDS = load_modules('commands')
-FETCHERS = load_modules('fetchers')
