@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-from commands.account import prompt_account
-from commands.category import prompt_category
-
 import sys
 import inspect
 import shlex

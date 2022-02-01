@@ -65,6 +65,10 @@ def account_record(account_id, snapshot_id, value):
     do update set value=?
     ''', (account_id, snapshot_id, value, value))
 
+@lib.command()
+def amend(account_id, value):
+    account_record(account_id, latest_snapshot_id(), value)
+
 @lib.command(category='setup')
 def account_del(account_id):
     """Deletes an account."""

@@ -94,7 +94,7 @@ def update_resume():
     tabtab.print_dataframe(currencies)
     for _, cur in currencies.iterrows():
         if not pd.isna(cur.curr_value):
-            print('{cur.symbol}: {cur.curr_value}')
+            print(f'{cur.symbol}: {cur.curr_value}')
             continue
         value = input(f'Value of {cur.symbol}? ')
         currency_record(cur.symbol, value)

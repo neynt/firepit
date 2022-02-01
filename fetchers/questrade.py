@@ -1,1 +1,1 @@
-URL = 'https://login.questrade.com/Signin.aspx'
+URL = 'https://login.questrade.com/Account/Login'

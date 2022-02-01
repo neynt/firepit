@@ -17,6 +17,7 @@ def main(db_file):
         'create table',
         'index',
         'create view',
+        'drop view',
     ]
     statements_of_kind = defaultdict(list)
     for statement in statements:
@@ -35,6 +36,7 @@ def main(db_file):
     create_tables = statements_of_kind['create table']
     create_indexes = statements_of_kind['index']
     create_views = statements_of_kind['create view']
+    drop_views = statements_of_kind['drop view']
 
     creates = []
     for statement in create_tables:
@@ -47,6 +49,9 @@ def main(db_file):
         view_name = re.search(r'create view if not exists ([a-z_]+)', statement, re.DOTALL)[1]
         c.execute(f'drop view if exists {view_name}')
         print(view_name)
+    for statement in drop_views:
+        c.execute(statement)
+        print(statement)
 
     # Create dummy tables.
     for table_name, table_name_new, statement in creates:

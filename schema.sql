@@ -40,13 +40,6 @@ create table if not exists account_value
 create unique index idx_account_value_id_snapshot
 on account_value (id, snapshot);
 
-create table if not exists categories
-( id integer primary key
-, name varchar not null
-, parent integer references categories(id)
-, default_amortization varchar not null default 'point'
-);
-
 create table if not exists transactions
 ( id integer primary key autoincrement
 , account_id integer references accounts(id)
@@ -54,14 +47,10 @@ create table if not exists transactions
 , amount numeric not null
 , description varchar not null
 , amortization varchar not null default 'point'
-, category_id integer references categories(id)
+, category varchar
 );
 
 create unique index idx_transactions_id
 on transactions (id);
 
-create view if not exists vw_transactions as
-select t.id, t.day, t.amount, t.description, a.name as account, c.name as category
-from transactions t
-join accounts a on t.account_id = a.id
-join categories c on t.category_id = c.id;
+drop view if exists vw_transactions;

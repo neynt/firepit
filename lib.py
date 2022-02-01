@@ -1,6 +1,6 @@
 import html
 import inspect
-from datetime import datetime
+from datetime import datetime, date
 from collections import defaultdict
 
 import numpy as np
@@ -143,13 +143,11 @@ class DatetimeValidator(Validator):
             raise ValidationError(message=str(e), cursor_position=pos)
 
 @prompter('day')
-@prompter('time_start')
-@prompter('time_end')
-def prompt_datetime(*args):
+def prompt_date(*args):
     res = prompt(*args,
                  validator=DatetimeValidator(),
                  validate_while_typing=True)
-    return parse_datetime(res)
+    return parse_datetime(res).date()
 
 def prompt_confirm(prompt_word):
     return prompt_list(['y', 'n'], f'{prompt_word} (y/n): ') == 'y'
@@ -182,6 +180,24 @@ def prompt_float(*args):
                  validate_while_typing=True)
     return float(res)
 
+def prompt_day_desc_price(*args):
+    def get_parts(s):
+        day, desc, price = map(str.strip, s.split(';'))
+        day = parse_datetime(day).date()
+        price = float(price)
+        return day, desc, price
+    class Validate(Validator):
+        def validate(self, document):
+            pos = len(document.text)
+            try:
+                get_parts(document.text)
+            except ValueError as e:
+                raise ValidationError(message=str(e), cursor_position=pos)
+    res = prompt(*args,
+                 validator=Validate(),
+                 validate_while_typing=True)
+    return get_parts(res)
+
 def format_str(item):
     """Convert to string, with smart handling for certain types."""
     plain = str(item)
@@ -190,8 +206,10 @@ def format_str(item):
         plain = 'n/a'
         formatted = f'<ansiblack>{plain}</ansiblack>'
     elif type(item) in [float, np.float64]:
+        plain = '{:.2f}'.format(item)
+        formatted = plain
         if item != 0.0:
-            for decimals in [0, 2, 3, 4, 5, 6, 7, 8]:
+            for decimals in [2, 3, 4, 5, 6, 7, 8]:
                 s = ('{:.%df}' % decimals).format(item)
                 diff = abs(item - float(s))
                 if diff < 0.1**(decimals + 3) and diff / item < 0.00001:
@@ -216,6 +234,8 @@ def format_str(item):
         else:
             plain = '✘'
             formatted = f'<ansired>{plain}</ansired>'
+    elif type(item) == date:
+        pass
     elif type(item) == str:
         pass
     else:
@@ -242,6 +262,23 @@ def call_via_prompts(f, *args, echo_passed=False, **kwargs):
                     print(f'assuming {name}: {param.default}')
             else:
                 args.append(prompt(f'{name}: '))
-
     return f(*args, **kwargs)
 
+def call_via_comma_separated(f, *args, **kwargs):
+    args = list(args)
+    sig = inspect.signature(f)
+    params = [(k, v) for k, v in sig.parameters.items()
+              if v.default == inspect.Parameter.empty]
+    if len(params) > len(args):
+        for i, (name, param) in enumerate(params):
+            if i < len(args) or name in kwargs:
+                if echo_passed:
+                    print(f'{name}: {args[i]}')
+            elif name in PROMPTERS:
+                args.append(PROMPTERS[name](f'{name}: '))
+            elif param.default != inspect.Parameter.empty:
+                if echo_passed:
+                    print(f'assuming {name}: {param.default}')
+            else:
+                args.append(prompt(f'{name}: '))
+    return f(*args, **kwargs)

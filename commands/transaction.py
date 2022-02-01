@@ -5,7 +5,7 @@ import tabtab
 @lib.command()
 def transactions():
     return db.query_to_dataframe('''
-    select id, account_id, category_id, day, amount, description, amortization
+    select id, account_id, category, day, amount, description, amortization
     from transactions
     order by day
     ''')
@@ -13,7 +13,7 @@ def transactions():
 @lib.command()
 def transactions_between(min_date, max_date):
     return db.query_to_dataframe('''
-    select id, account_id, category_id, day, amount, description, amortization
+    select id, account_id, category, day, amount, description, amortization
     from transactions
     where day >= ? and day <= ?
     order by day
@@ -22,18 +22,18 @@ def transactions_between(min_date, max_date):
 @lib.command()
 def transactions_for_account(account_id):
     return db.query_to_dataframe('''
-    select id, account_id, category_id, day, amount, description, amortization
+    select id, account_id, category, day, amount, description, amortization
     from transactions
     where account_id = ?
     order by day
     ''', (account_id,))
 
 @lib.command()
-def transaction_new(account_id, day, description, amount, category_id):
+def transaction_new(account_id, day, description, amount):
     db.execute('''
-    insert into transactions (account_id, day, amount, description, category_id)
-    values (?, ?, ?, ?, ?)
-    ''', (account_id, day, amount, description, category_id))
+    insert into transactions (account_id, day, amount, description)
+    values (?, ?, ?, ?)
+    ''', (account_id, day, amount, description))
 
 @lib.prompter('description')
 def prompt_transaction_description(*args):
@@ -62,13 +62,9 @@ def transaction_loop(account_id):
         print('Last transactions recorded:')
         tabtab.print_dataframe(result)
     try:
+        print('Enter day; desc; amt')
         while True:
-            ts = transactions()
-            day = lib.PROMPTERS['day']('day: ')
-            description = lib.PROMPTERS['description']('description: ')
-            default_category = ts[ts.description == description].category_id
-            # TODO: make this work
-            #print(default_category)
-            lib.call_via_prompts(transaction_new, account_id, day, description)
+            day, desc, amt = lib.prompt_day_desc_price('> ')
+            lib.call_via_prompts(transaction_new, account_id, day, desc, amt)
     except KeyboardInterrupt:
         pass

@@ -24,7 +24,10 @@ def rollback():
 def query_to_dataframe(*args):
     c.execute(*args)
     data = c.fetchall()
-    result = pd.DataFrame(data, columns=[desc[0] for desc in c.description])
+    if c.description:
+        result = pd.DataFrame(data, columns=[desc[0] for desc in c.description])
+    else:
+        result = pd.DataFrame(data)
     return result
 
 def query(*args):

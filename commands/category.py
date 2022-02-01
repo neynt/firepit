@@ -14,16 +14,16 @@ def prompt_category(*_args):
     cats = categories()
     cat_names = cats.name.to_list()
     name = lib.prompt_list_nonstrict(cat_names, 'category: ')
-    if name in cat_names:
-        return int(cats[cats.name == name].id)
-    if lib.prompt_confirm(f'Create new category "{name}"?'):
-        return lib.call_via_prompts(category_new, name)
+    while True:
+        if name in cat_names:
+            return int(cats[cats.name == name].id)
+        if lib.prompt_confirm(f'Create new category "{name}"?'):
+            return lib.call_via_prompts(category_new, name)
 
 def category_tree_lines():
     cats = db.query_to_dataframe('''
     select id, name, parent from categories c
     ''')
-    print(cats)
     roots = cats[pd.isna(cats.parent)].id
     def aux(id_, prefix):
         name = cats[cats.id == id_].name.iloc[0]
